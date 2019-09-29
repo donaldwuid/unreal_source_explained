@@ -60,7 +60,7 @@ Allocation is thread-safe and locked for the specific pool.([link](https://githu
 ![](img/FMallocBinned_lock.png)
 
 ### Global operator new
-Only in Windows has global `operator new()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Core/Public/MemPro/MemPro.h#L688)), which means, unlike Unity, your code's new operator is not managed by the engine, and is just handled by the operating system.
+Only Windows has global `operator new()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Core/Public/MemPro/MemPro.h#L688)), which means, unlike Unity, your code's new operator is not managed by the engine, and is just handled by the operating system.
 ```C++
 #ifdef OVERRIDE_NEW_DELETE
 

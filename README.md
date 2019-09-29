@@ -16,3 +16,9 @@ USE is based on:
 - instrument trace files of the [*ActionRPG*](https://www.unrealengine.com/marketplace/en-US/slug/action-rpg) demo;
 - running on iOS devices requiring:
     - CPU cores >= 3 to observe Unreal's multi-thread characteristic
+
+USE is working in progress, I will add contents persitently, usually when 
+- I'm curious about some pieces of code,
+- or my work demands it.
+
+Therefore, in order to speed up or improve the explaination quality, **you are always welcomed to fork, add content and make pull-request!**
