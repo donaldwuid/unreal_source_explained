@@ -3,6 +3,33 @@
 [toc]
 
 ## Thread Overview
+Unreal has these several important threads:
+- Game thread
+- Main (App) thread
+- Task Threads
+	- Rendering thread(s)
+	- File I/O thread
+
+This following image is the *threads overview* in the profiler. Threads are sorted by their CPU Time, which usually infer their importance.
+![](img/threads_overview.jpg)
+
+### Game Thread
+**`[IOSAppDelegate MainAppThread:]`** in the thread overview image.
+
+Game thread's main mission is running `FEngineLoop`([link](https://github.com/EpicGames/UnrealEngine/blob/33e9eedc27e80b9e67c1d1a2667672ed23c7531b/Engine/Source/Runtime/Launch/Public/LaunchEngineLoop.h#L21)), including its initialization `PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L1158)) and tick `Tick()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L4012)).  
+Every game is running frame by frame. Inside one frame, several submodules are called sequentially. This routine is known as *Game Loop*.  
+`FEngineLoop` is Unreal's game loop. Each time `FEngineLoop::Tick()` is called, that means one new frame has just begun.
+
+Note that in Unreal, game thread's name is `[IOSAppDelegate MainAppThread:]`, it means its Unreal's main thread, do not confuse with the process's main thread.
+
+### Main (App) Thread
+**`Main Thread`** in the thread overview image.
+
+This thread is the this iOS process's main thread, it's the first thread that gets created.  
+In Unreal, Main thread doesn't carry out heavy jobs, it just handles some native iOS messages, such as touch event.
+
+### Task Threads
+
 
 ## Loop
 
