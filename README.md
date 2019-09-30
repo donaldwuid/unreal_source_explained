@@ -25,5 +25,6 @@ USE is working in progress, I will add contents persitently, usually when
 
 Therefore, in order to get more code explained, or to improve the explaination quality, **you are always welcomed to fork, add content and make pull-request!**
 
-I've upload some instrument files in the *profiler* folder, you can use it as a quick overview. **XCode 11** is required to open these files.  
+I've upload some instrument files in the *profile* folder, you can use it as a quick overview. **XCode 11** is required to open these files.   
+There are two files in it, both of them are captured in iPadPro 10.5(2017), and contain the Time Profiler and the Allocation. The file with "Wait" in the filename is captured with Time Profiler's *Record Waiting Thread* option turned on, this is useful to observe the thread off-cpu waiting time.  
 To reduce the file size, this profile files only capture a very short amount of time, therefore, for a longer and better profile file, you are suggested to build and profile the ActionRPG game on your own.

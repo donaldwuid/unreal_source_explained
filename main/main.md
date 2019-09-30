@@ -9,6 +9,8 @@ Unreal has these several important threads:
 - Task Threads
 	- Render thread(s)
 	- File I/O threads
+	- Mipmap streaming calculations
+	- etc.
 
 This following image is the *threads overview* in the profiler. Threads are sorted by their CPU Time, which usually infer their importance.
 ![](img/threads_overview.jpg)
@@ -29,7 +31,7 @@ This thread is the iOS process's main thread, it's the first thread that gets cr
 In Unreal, Main thread doesn't carry out heavy jobs, it just handles some native iOS messages, such as touch event.
 
 ### Task Threads
-Unreal has several ways to assign tasks to threads, these threads are called *Task Threads*, this will be covered in detail in future chapters.  
+Unreal has several ways to assign tasks to threads, these threads are called *Task Threads*. This task threads management will be discussed in future chapters.  
 These following threads are implemented as task threads.
 #### Render Threads
 > see "`FRenderingThread::Run()`" in the above thread overview image.
@@ -41,9 +43,11 @@ Render thread and the game thread are usually the heaviest 2 threads in most gam
 
 Render thread is created in `FEngineLoop::PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L2339)).
 
-Notice that sometimes you can see there is another thread running `FRenderingThread::Run()`, this is because render thread will be recreated during viewport resizes([link](https://github.com/EpicGames/UnrealEngine/blob/b4a54829162aa07a28846da2e91147912a7b67d8/Engine/Source/Runtime/RenderCore/Private/RenderingThread.cpp#L171)) 
+Notice that sometimes you can see there seems to be another thread running `FRenderingThread::Run()` in the Time Profiler, this is because render thread will be recreated during viewport resizes([link](https://github.com/EpicGames/UnrealEngine/blob/b4a54829162aa07a28846da2e91147912a7b67d8/Engine/Source/Runtime/RenderCore/Private/RenderingThread.cpp#L171)), and the Time Profiler captures both the destroyed and recreated render threads. There is only one render thread at any given time.
 
 #### File I/O Threads
+> see "`FAsyncTask<FGenericReadRequestWorker>::DoThreadedWork()`" in the above thread overview image.
+
 
 ## Loop
 
@@ -124,7 +128,6 @@ Only Windows has global `operator new()`([link](https://github.com/EpicGames/Unr
 	#endif
 #endif
 ```
+## Gameplay
 
 ## Rendering
-
-## Gameplay
