@@ -67,11 +67,11 @@ You might modify the source code to enable the RHI thread in mobile devices with
 ## Initialization Overview
 ![](img/engine_init.png)
 
-Unreal is initialized by two main steps: `FEngineLoop::PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L993)) and `FEngineLoop::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3410)). They are called in `FAppEntry::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/395c9713d5b5eee9daf8b7077bcac311c85a63a1/Engine/Source/Runtime/Launch/Private/IOS/LaunchIOS.cpp#L372)) in iOS, and `AndroidMain()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Launch/Private/Android/LaunchAndroid.cpp#L445)) in Android.
+As you can see in the image above, Unreal is initialized by two main steps: `FEngineLoop::PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L993)) and `FEngineLoop::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3410)). They are called in `FAppEntry::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/395c9713d5b5eee9daf8b7077bcac311c85a63a1/Engine/Source/Runtime/Launch/Private/IOS/LaunchIOS.cpp#L372)) in iOS, and `AndroidMain()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Launch/Private/Android/LaunchAndroid.cpp#L445)) in Android.
 
 You may think `PreInit()` is the low-level initializaiton and `Init()` is the high-level.
 
-Note in Unreal there are two ways to manage submodules: *[Module](https://docs.unrealengine.com/en-US/Programming/BuildTools/UnrealBuildTool/ModuleFiles/index.html)* and *[Plugins](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html)*. Module conatains only code, while Plugin can contain assets and/or codes.
+Note in Unreal there are two ways to manage submodules: [*Module*](https://docs.unrealengine.com/en-US/Programming/BuildTools/UnrealBuildTool/ModuleFiles/index.html) and [*Plugins*](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html). Module conatains only code, while Plugin can contain assets and/or codes.
 
 To name a few things get initialized in `PreInit()`, in order:
 - load core module([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L1719)): `LoadCoreModules()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3122)) for "CoreUObject";
@@ -173,7 +173,7 @@ Allocation is thread-safe and locked for the specific pool.([link](https://githu
 ![](img/FMallocBinned_lock.png)
 
 ### Global override new operator
-Some engine (e.g. Unity) uses [Global overloaded new operator](https://www.geeksforgeeks.org/overloading-new-delete-operator-c/) to hook the `new` opeartor and make its own custom memory management.  
+Some engine (e.g. Unity) uses [*Global overloaded new operator*](https://www.geeksforgeeks.org/overloading-new-delete-operator-c/) to hook the `new` opeartor and make its own custom memory management.  
 But in Unreal, only Windows overrides the global `operator new()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Core/Public/MemPro/MemPro.h#L688)), which means, unlike Unity, your code's `new` operator is not managed by the engine, and is just the plain c++ `new`.
 ```C++
 #ifdef OVERRIDE_NEW_DELETE
@@ -197,6 +197,127 @@ But in Unreal, only Windows overrides the global `operator new()`([link](https:/
 	#endif
 #endif
 ```
+## Blueprints Visual Scripting
+*[Blueprints](https://docs.unrealengine.com/en-US/Engine/Blueprints/Overview/index.html)* is Unreal's visual scripting, it is usually used to write some high-level logic, such as gameplay, UI, etc.
+
+
+Blueprints is [*event driven*](https://en.wikipedia.org/wiki/Event-driven_programming), and they usually look like this:
+![](img/blueprints_demo.png)
+The above image is the a ActionRPG's **BP_PlayerController** blueprints event graphs.  
+There are two red titled nodes, which are the events node: **InputAction Pause** and **InputAction Inventory**. Event nodes are the start porint of a graph, hence, there are two graphs in the image. The top graph is handling the logic when the pause event triggers, and the bottom graph is handling the inventory.
+
+Like Java and C# having their [*process virtual machine*](https://en.wikipedia.org/wiki/Virtual_machine#Process_virtual_machines) (or just *virtual machine*, VM), Blueprints is also running on a Unreal implemented virtual machine.   
+And the following image is the native call stacks of all blueprints of ActionRPG, including the above **BP_PlayerController**:
+![](img/blueprints_callstack.png)
+Important calls are highlighted. You may observe:
+- they all start from `UObject::ProcessEvent()`, and end with `FFrame::StepXX()`;
+- `FFrame` appears as the parameter all the way along the call stacks;
+
+`FFrame`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Public/UObject/Stack.h#L83)) is the most important class for the blueprints VM. It should have a better name **FCallStackFrame** to emphasize its relationship with VM and [*call stack frame*](https://en.wikipedia.org/wiki/Call_stack#Structure): each stack frame corresponds to a call to a subroutine wich has not yet termined with a return.   
+Anyway, don't confuse that `FFrame` has nothing to do with rendering frame.  
+
+Here is the key fields and methods of `FFrame`, each of its field is additionally commented:
+
+```c++
+//
+// Information about script execution at one stack level.
+//
+struct FFrame : public FOutputDevice
+{	
+public:
+	// Variables.
+	// the function that is executing
+	UFunction* Node;
+	// the object that is executing ("this")
+	UObject* Object;
+	uint8* Code;
+	uint8* Locals;
+
+	/** Previous frame on the stack */
+	FFrame* PreviousFrame;
+
+	/** contains information on any out parameters */
+	FOutParmRec* OutParms;
+
+	/** Currently executed native function */
+	UFunction* CurrentNativeFunction;
+
+	...
+
+public:
+
+	// Constructors.
+	FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFrame* InPreviousFrame = NULL, UField* InPropertyChainForCompiledIn = NULL );
+	...
+
+	// Functions.
+	COREUOBJECT_API void Step( UObject* Context, RESULT_DECL );
+
+	...
+};
+```
+
+A `FFrame` holds the `UObject* Object` as the object that is executing, `UFunction* Node` and uses the `FFrame* PreviousFrame` to link to the previous stack frame.
+
+There is actually no a concrete stack container of `FFrame` in runtime. The only two places where create the new `FFrame` are `UObject::ProcessEvent()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Private/UObject/ScriptCore.cpp#L1855)) and `ProcessScriptFunction()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Private/UObject/ScriptCore.cpp#L715)):
+
+```c++
+/*-----------------------------
+		Virtual Machine
+-----------------------------*/
+
+/** Called by VM to execute a UFunction with a filled in UStruct of parameters */
+void UObject::ProcessEvent( UFunction* Function, void* Parms )
+{
+	...
+
+	uint8* Frame = NULL;
+	...
+	const bool bUsePersistentFrame = (NULL != Frame);
+	if (!bUsePersistentFrame)
+	{
+		Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
+		// zero the local property memory
+		FMemory::Memzero(Frame + Function->ParmsSize, Function->PropertiesSize - Function->ParmsSize);
+	}
+
+	// initialize the parameter properties
+	FMemory::Memcpy(Frame, Parms, Function->ParmsSize);
+
+	// Create a new local execution stack.
+	FFrame NewStack(this, Function, Frame, NULL, Function->Children);
+
+	...
+
+	// Call native function or UObject::ProcessInternal.
+	Function->Invoke(this, NewStack, ReturnValueAddress);
+	
+	...
+}
+```
+
+```c++
+
+// Helper function to set up a script function, and then execute it using ExecFtor.
+// ...
+template<typename Exec>
+void ProcessScriptFunction(UObject* Context, UFunction* Function, FFrame& Stack, RESULT_DECL, Exec ExecFtor)
+{
+	...
+	FFrame NewStack(Context, Function, nullptr, &Stack, Function->Children);
+	
+	...
+
+	if( Function->Script.Num() > 0)
+	{
+		// Execute the code.
+		ExecFtor( Context, NewStack, RESULT_PARAM );
+	}
+	...
+}
+
+```
+
 ## Gameplay
 
 ## Rendering
