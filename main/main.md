@@ -162,6 +162,15 @@ So, here is some important call extractions from `FEngineLoop::Tick()`, sorted b
 - custom registered tick is called([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L4456)): `FTicker::Tick()`([link](https://github.com/EpicGames/UnrealEngine/blob/cbfcbbb93b3d40c36067a9e962b01e2e35149ead/Engine/Source/Runtime/Core/Private/Containers/Ticker.cpp#L56))
 - broadcast the frame end event([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L4470)): `FCoreDelegates::OnEndFrame`([link](https://github.com/EpicGames/UnrealEngine/blob/5a8595da4c1427e70707158a8173b4ac774faa8e/Engine/Source/Runtime/Core/Private/Misc/CoreDelegates.cpp#L84))
 
+
+## Thread Management
+
+### Task Graph
+Task Graph is an [*thread pool*](https://en.wikipedia.org/wiki/Thread_pool) implementation in Unreal. All kinds of tasks are scheduled among a pool of threads.
+
+The following image is the call stacks filtered by "TGraphTask", you may notice the both the render thread and the game thread use the task graph to accomplish many specific tasks.
+![](img/unreal_task_graph.png)
+
 ## Memory Management
 
 ### Heap allocation
@@ -321,3 +330,41 @@ void ProcessScriptFunction(UObject* Context, UFunction* Function, FFrame& Stack,
 ## Gameplay
 
 ## Rendering
+For better support of massive renderers, GPU driven pipeline and ray-tracing, Epic has refactored and introduce a new [mesh drawing pipeline](https://docs.unrealengine.com/en-US/Programming/Rendering/MeshDrawingPipeline/index.html) in 4.22. 
+
+It's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.
+
+`FMeshBatch` cantains the vertex buffer and material.
+
+
+
+`FMeshDrawCommand` fully describes a mesh pass draw call, captured just above the RHI
+
+```c++
+/**
+ * A batch of mesh elements, all with the same material and vertex buffer
+ */
+struct FMeshBatch
+{
+	TArray<FMeshBatchElement,TInlineAllocator<1> > Elements;
+	...
+	uint32 ReverseCulling : 1;
+	uint32 bDisableBackfaceCulling : 1;
+	/** 
+	 * Pass feature relevance flags.  Allows a proxy to submit fast representations for passes which can take advantage of it, 
+	 * for example separate index buffer for depth-only rendering since vertices can be merged based on position and ignore UV differences.
+	 */
+	uint32 CastShadow		: 1;	// Whether it can be used in shadow renderpasses.
+	uint32 bUseForMaterial	: 1;	// Whether it can be used in renderpasses requiring material outputs.
+	uint32 bUseForDepthPass : 1;	// Whether it can be used in depth pass.
+	uint32 bUseAsOccluder	: 1;	// Hint whether this mesh is a good occluder.
+	...
+
+	/** Vertex factory for rendering, required. */
+	const FVertexFactory* VertexFactory;
+
+	/** Material proxy for rendering, required. */
+	const FMaterialRenderProxy* MaterialRenderProxy;
+	...
+};
+```
