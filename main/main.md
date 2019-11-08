@@ -142,6 +142,11 @@ Most (near all) `Z_Construct_UClass_XXX()` fuctions are called only in the initi
 ```
 
 ## Loop
+Every game is running frame by frame. Inside one frame, several submodules are called sequentially. This routine is known as *Game Loop*.
+
+![](assets/general_game_loop.png)
+
+
 
 Inside `FEngineLoop::Tick()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L4012)), there are many hardcoded submodules' ticks get called sequetially. This following image is the tick overview, however, it's sorted by the CPU Time, not the calling order.
 ![](img/FEngineLoop_Tick_Overview.png)
@@ -165,8 +170,154 @@ So, here is some important call extractions from `FEngineLoop::Tick()`, sorted b
 
 ## Thread Management
 
+### RunnableThread and Runnable
+
+
+`FRunnableThread`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/HAL/RunnableThread.h#L19)) is a cross platfrom abstract "native thread" interface in Unreal. It has different implementaion in different OS, for example, `FRunnableThreadWin`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/Windows/WindowsRunnableThread.h#L22)) in Windows, `FRunnableThreadPThread`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/PThreadRunnableThread.h#L23)) in [POSIX-compliant](https://en.wikipedia.org/wiki/POSIX) OS, i.e., iOS and Android.
+
+`FRunnable`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/HAL/Runnable.h#L19))'s inherited class represets the actual running workload, e.g., `FRenderingThread`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/RenderCore/Private/RenderingThread.cpp#L394)).
+
+Each `FRunnableThread` runs **one** `FRunnable`.
+
+Take the POSIX `FRunnableThreadPThread` for example, static function `_ThreadProc()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/PThreadRunnableThread.h#L161)) is the thread entry point and it calls every `FRunnableThreadPThread::Run()`, as follows.
+```c++
+/**
+	* The thread entry point. Simply forwards the call on to the right
+	* thread main function
+	*/
+static void *STDCALL _ThreadProc(void *pThis)
+{
+	FRunnableThreadPThread* ThisThread = (FRunnableThreadPThread*)pThis;
+
+	...
+
+	// run the thread!
+	ThisThread->PreRun();
+	ThisThread->Run();
+	ThisThread->PostRun();
+
+	pthread_exit(NULL);
+	return NULL;
+}
+```
+
+
+then, `FRunnableThreadPThread::Run()` calls `FRunnable::Run()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/PThreadRunnableThread.cpp#L25)).
+
+RunnableThread and Runnable is the low-level thread management in Unreal. The following Async Task and Task Graph depend on Runnable.
+
+### Queued Thread and Async Task
+Queued Thread and Async Task is an [*thread pool*](https://en.wikipedia.org/wiki/Thread_pool) implementation in Unreal. All kinds of tasks are scheduled among a pool of threads.
+![](assets/general_thread_pool.png)
+
+`FQueuedThreadPoolBase`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/ThreadingBase.cpp#L599)) manages this task queue and thread queue, as follow,
+```c++
+/**
+ * Implementation of a queued thread pool.
+ */
+class FQueuedThreadPoolBase : public FQueuedThreadPool
+{
+protected:
+
+	/** The work queue to pull from. */
+	TArray<IQueuedWork*> QueuedWork;
+	
+	/** The thread pool to dole work out to. */
+	TArray<FQueuedThread*> QueuedThreads;
+
+	/** All threads in the pool. */
+	TArray<FQueuedThread*> AllThreads;
+	
+	...
+}
+```
+
+There are 4 threads pools([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/ThreadingBase.cpp#L19)) in maximum, but the most important is the `GThreadPool`, which is the default thread pool for most tasks.
+
+`FQueuedThread`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/ThreadingBase.cpp#L462)) inherits from `FRunnable`, it represents the task worker thread. Its `Run()` waits for its `DoWorkEvent`, if signaled, it runs its current `QueuedWork` by calling `IQueuedWork::DoThreadedWork()`, as follow,
+
+```c++
+class FQueuedThread : public FRunnable
+{
+protected:
+	/** The event that tells the thread there is work to do. */
+	FEvent* DoWorkEvent;
+	/** The work this thread is doing. */
+	IQueuedWork* volatile QueuedWork;
+	/** The pool this thread belongs to. */
+	class FQueuedThreadPool* OwningThreadPool;
+	/** My Thread  */
+	FRunnableThread* Thread;
+
+	virtual uint32 Run() override
+	{
+		while (!TimeToDie.Load(EMemoryOrder::Relaxed))
+		{
+			// We need to wait for shorter amount of time
+			bool bContinueWaiting = true;
+			while( bContinueWaiting )
+			{
+				// Wait for some work to do
+				bContinueWaiting = !DoWorkEvent->Wait( 10 );
+			}
+
+			IQueuedWork* LocalQueuedWork = QueuedWork;
+			QueuedWork = nullptr;
+			FPlatformMisc::MemoryBarrier();
+			while (LocalQueuedWork)
+			{
+				// Tell the object to do the work
+				LocalQueuedWork->DoThreadedWork();
+				// Let the object cleanup before we remove our ref to it
+				LocalQueuedWork = OwningThreadPool->ReturnToPoolOrGetNextJob(this);
+			} 
+		}
+		return 0;
+	}
+
+	...
+
+	void DoWork(IQueuedWork* InQueuedWork)
+	{
+		// Tell the thread the work to be done
+		QueuedWork = InQueuedWork;
+		FPlatformMisc::MemoryBarrier();
+		// Tell the thread to wake up and do its job
+		DoWorkEvent->Trigger();
+	}
+};
+
+```
+
+`FEngineLoop::PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L1804)) calls `FQueuedThreadPoolBase::Create()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/ThreadingBase.cpp#L655)) to creates `FQueuedThread`s. 
+![](assets/fqueuedthread_creation.png)
+
+`IQueuedWork`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/Misc/IQueuedWork.h#L16)) is the task interface, it can't be any simpler:
+```c++
+class IQueuedWork
+{
+public:
+	virtual void DoThreadedWork() = 0;
+	virtual void Abandon() = 0;
+
+public:
+	virtual ~IQueuedWork() { }
+};
+```
+
+<!--
+`FQueuedThreadPoolBase` schedules each `IQueuedWork` into a `FQueuedThread`, each time the schedule start one work, it binds the work and thread into the `FQueuedThread`.
+-->
+
+The most important implementation of `IQueuedWork` is `FAsyncTask`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/Async/AsyncWork.h#L207)).  
+`FAsyncTask` is a template class, various specific tasks start their work as the following.
+![](assets/asynctask_start.png)
+
+You can create your own async task class as the sample code in `FAsyncTask`'s comment([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/Async/AsyncWork.h#L156)).
+
+
 ### Task Graph
-Task Graph is an [*thread pool*](https://en.wikipedia.org/wiki/Thread_pool) implementation in Unreal. All kinds of tasks are scheduled among a pool of threads.
+Task Graph handles dependecy among async tasks.
 
 The following image is the call stacks filtered by "TGraphTask", you may notice the both the render thread and the game thread use the task graph to accomplish many specific tasks.
 ![](img/unreal_task_graph.png)
