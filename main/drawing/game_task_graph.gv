@@ -1,0 +1,17 @@
+digraph {
+    rankdir="LR";
+
+    FrameStart, Update, Skinning, UIRebuild, Sound, Render, FrameEnd
+    {
+        FrameStart -> Update
+        Update -> Skinning
+        Update -> UIRebuild
+        Update -> Sound
+
+        Skinning -> Render
+        UIRebuild -> Render
+
+        Sound -> FrameEnd
+        Render -> FrameEnd
+    }
+}

@@ -64,14 +64,17 @@ You might modify the source code to enable the RHI thread in mobile devices with
 
 
 
-## Initialization Overview
+## Initialization
+<!-- TODO: Change this to life-cycle and include both Initialization and Finalization -->
+
+###  Engine Initialization Overview
 ![](assets/engine_init.png)
 
 As you can see in the image above, Unreal is initialized by two main steps: `FEngineLoop::PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L993)) and `FEngineLoop::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3410)). They are called in `FAppEntry::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/395c9713d5b5eee9daf8b7077bcac311c85a63a1/Engine/Source/Runtime/Launch/Private/IOS/LaunchIOS.cpp#L372)) in iOS, and `AndroidMain()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Launch/Private/Android/LaunchAndroid.cpp#L445)) in Android.
 
 You may think `PreInit()` is the low-level initializaiton and `Init()` is the high-level.
 
-Note in Unreal there are two ways to manage submodules: [*Module*](https://docs.unrealengine.com/en-US/Programming/BuildTools/UnrealBuildTool/ModuleFiles/index.html) and [*Plugins*](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html). Module conatains only code, while Plugin can contain assets and/or codes.
+Note in Unreal there are two ways to manage submodules: [*Module*](https://docs.unrealengine.com/en-US/Programming/BuildTools/UnrealBuildTool/ModuleFiles/index.html) and [*Plugins*](https://docs.unrealengine.com/en-US/Programming/Plugins/index.html). Module conatains only code, while Plugin can contain assets and/or Modules.
 
 To name a few things get initialized in `PreInit()`, in order:
 - load core module([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L1719)): `LoadCoreModules()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3122)) for "CoreUObject";
@@ -101,6 +104,87 @@ and `Init()` initializes these in order:
 		- create localplayer for the viewport([link](https://github.com/EpicGames/UnrealEngine/blob/2f53e5141feb2eaaf521f9193b07bd6103d69230/Engine/Source/Runtime/Engine/Private/GameEngine.cpp#L1094)): `UGameViewportClient::SetupInitialLocalPlayer()`([link](https://github.com/EpicGames/UnrealEngine/blob/7256ed00bd50ce4c8d099e9e8495d37b0e5130e5/Engine/Source/Runtime/Engine/Private/GameViewportClient.cpp#L2019))
 - and start the high level game engine([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3521)): `UGameEngine::Start()`([link](https://github.com/EpicGames/UnrealEngine/blob/2f53e5141feb2eaaf521f9193b07bd6103d69230/Engine/Source/Runtime/Engine/Private/GameEngine.cpp#L1119))
 
+
+
+### UObject Initialization
+
+### Archetype and CDO
+
+To manage `UObject`s, Unreal uses `UObjectBase::ObjectFlags`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Public/UObject/UObjectBase.h#L239)) to record a `UObject` instance's states.
+
+A `UObject` instance is called *Archetype* object if it has `RF_ArchetypeObject` flag, and it's called *Class Default Object (CDO)* if it has `RF_ClassDefaultObject`.
+
+
+Unreal eventually calls `StaticConstructObject_Internal()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Public/UObject/UObjectGlobals.h#L281)) to create every `UObject` instance, no matter it's via user's `NewObject<T>()` call ([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Public/UObject/UObjectGlobals.h#L1238)) or via Unreal's internal call. Here the most important 3 parameters of `StaticConstructObject_Internal()` are its 
+- `UClass* Class`: The class of the object to create. The return value of `Class->GetDefaultObject()` is indeed the CDO;
+- `UObject* Template`: If specified, the property values from this object will be copied to the new object, and the new object's ObjectArchetype value will be set to this object. If nullptr, the class default object is used instead.
+- `EObjectFlags	InFlags`: The ObjectFlags to assign to the new object.
+
+Parameter `Template` has higher priority than the CDO to copy its property value to the new object([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Private/UObject/UObjectGlobals.cpp#L2717)).
+
+```c++
+FObjectInitializer::~FObjectInitializer()
+{
+	//...
+	UObject* Defaults = ObjectArchetype ? ObjectArchetype : BaseClass->GetDefaultObject(false);
+	InitProperties(Obj, BaseClass, Defaults, bCopyTransientsFromClassDefaults);
+	//...
+}
+```
+
+
+The new object's flag is set by the `InFlags` argument. **Usually** it doesn't have `RF_ArchetypeObject` nor `RF_ClassDefaultObject` flag, therefore, the new object is just a normal instance.   
+However that's not the case when the new object is a new Archetype object or a new CDO.
+
+So what's archetype and CDO anyway, what's their similarity and difference?
+
+![](assets/cdo_archetype.png)
+
+As the above image shows, either an Archetype object, a CDO, or any `UObject` instance can be a **template object** to copy its properties' values into a new object.   
+
+Any `UObject` instance can be a template object, with or without `RF_ArchetypeObject` or `RF_ClassDefaultObject` flag.
+
+Archetype object iteself is initialized from **asset data** (e.g. uasset) in the disk. Its `RF_ArchetypeObject` flag is set when loading the asset in `FLinkerLoad::CreateExport()`([link](https://github.com/EpicGames/UnrealEngine/blob/bc6b9211003ae9e975689bf2b33718f832483a71/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L4288)):
+
+```c++
+UObject* FLinkerLoad::CreateExport( int32 Index )
+{
+	FObjectExport& Export = ExportMap[ Index ];
+	...
+	// RF_ArchetypeObject and other flags
+	EObjectFlags ObjectLoadFlags = Export.ObjectFlags;
+	...
+	Export.Object = StaticConstructObject_Internal
+	(
+		LoadClass,
+		ThisParent,
+		NewName,
+		ObjectLoadFlags,
+		EInternalObjectFlags::None,
+		Template
+	);
+}
+```
+
+CDO itself is initialized by 
+- its **constructor code**, 
+- its **Superclass's CDO** if it has `SuperClass`([link](https://github.com/EpicGames/UnrealEngine/blob/749698e58259778b9488e040d2af58e49973d45e/Engine/Source/Runtime/CoreUObject/Private/UObject/Class.cpp#L3020)), 
+- and also, by its asset data if it has linked asset in `UClass::SerializeDefaultObject()`([link](https://github.com/EpicGames/UnrealEngine/blob/749698e58259778b9488e040d2af58e49973d45e/Engine/Source/Runtime/CoreUObject/Private/UObject/Class.cpp#L3889)).
+
+CDOs have both the `RF_ClassDefaultObject` **and** `RF_ArchetypeObject` flags, they are set and explained when creating the CDO ([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Private/UObject/Class.cpp#L3073)):
+```c++
+UObject* UClass::CreateDefaultObject()
+{
+	...
+	// RF_ArchetypeObject flag is often redundant to RF_ClassDefaultObject, but we need to tag
+	// the CDO as RF_ArchetypeObject in order to propagate that flag to any default sub objects.
+	ClassDefaultObject = StaticAllocateObject(this, GetOuter(), NAME_None, EObjectFlags(RF_Public|RF_ClassDefaultObject|RF_ArchetypeObject));
+	...
+}
+```
+For the same reason, all *Default Subobject*s have both `RF_DefaultSubObject` and `RF_ArchetypeObject` flags.
+
+### AActor and UComponent initialization
 
 
 ### Class reflection data
@@ -611,6 +695,12 @@ void ProcessScriptFunction(UObject* Context, UFunction* Function, FFrame& Stack,
 ## Gameplay
 
 ## Rendering
+
+### Acceleration
+
+
+
+### Rendering Pipeline
 For better support of massive renderers, GPU driven pipeline and ray-tracing, Epic has refactored and introduce a new [mesh drawing pipeline](https://docs.unrealengine.com/en-US/Programming/Rendering/MeshDrawingPipeline/index.html) in 4.22. 
 
 It's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.

@@ -1,0 +1,40 @@
+digraph {
+    rankdir="DT";
+
+    {
+        {
+            rank = same; 
+            cdo[label=<ClassDefault Object<BR/>
+        <FONT SIZE="10"><B>"CDO"</B></FONT>>, shape=box, group=g1]; 
+            ao[label="Archetype Object", shape=box, group=g1];
+            obj[label="Object instance", shape=box]; 
+        }
+        {
+            rank = same;
+            uasset[label="uasset file", shape=box3d, group=g2];
+            "constructor code"[shape=signature, group=g2]
+            superCDO[label="SuperClass CDO", shape=box, group=g2]
+        }
+        {
+            rankdir = "LR";
+            template[label="Template object", shape=box, group=g3]
+            inFlag[label="InFlags", group=g3]
+        }
+        newObject[label=<new object <BR/>
+        <FONT POINT-SIZE="10">can also be an <B>Archetype object</B> or a <B>CDO</B></FONT>>, shape=box]
+    }
+    {
+        uasset->ao [label="deserialize"]
+        uasset->cdo [style=dashed label="deserialize\n(if any)"]
+        "constructor code"->cdo [label="initialize"]
+        superCDO->cdo[label="copy properties to\n(if any)", style=dashed]
+        obj->template
+        cdo->template
+        ao->template
+        
+        template->newObject [label="copy properties to"]
+        inFlag->newObject [label="set flags to"]
+    }
+}
+
+
