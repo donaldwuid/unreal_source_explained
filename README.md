@@ -2,7 +2,7 @@
 
 Unreal Source Explained (USE) is an Unreal source code analysis, based on profilers.
 
-USE is just one markdown file: [main.md](main/main.md).
+USE is just several markdown files, see [main.md/overview](main/main.md).
 
 USE's goals are:
 - look inside the Unreal engine source;
