@@ -17,11 +17,11 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 1. [Gameplay](gameplay.md)
 
 
-## Initialization
+# Initialization
 
 <!-- TODO: Change this to life-cycle and include both Initialization and Finalization -->
 
-###  Engine Initialization Overview
+##  Engine Initialization Overview
 ![](assets/engine_init.png)
 
 As you can see in the image above, Unreal is initialized by two main steps: `FEngineLoop::PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L993)) and `FEngineLoop::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L3410)). They are called in `FAppEntry::Init()`([link](https://github.com/EpicGames/UnrealEngine/blob/395c9713d5b5eee9daf8b7077bcac311c85a63a1/Engine/Source/Runtime/Launch/Private/IOS/LaunchIOS.cpp#L372)) in iOS, and `AndroidMain()`([link](https://github.com/EpicGames/UnrealEngine/blob/8951e6117b483a89befe98ac2102caad2ce26cab/Engine/Source/Runtime/Launch/Private/Android/LaunchAndroid.cpp#L445)) in Android.
@@ -60,9 +60,9 @@ and `Init()` initializes these in order:
 
 
 
-### UObject Initialization
+## UObject Initialization
 
-### Archetype and CDO
+## Archetype and CDO
 
 To manage `UObject`s, Unreal uses `UObjectBase::ObjectFlags`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/CoreUObject/Public/UObject/UObjectBase.h#L239)) to record a `UObject` instance's states.
 
@@ -138,10 +138,10 @@ UObject* UClass::CreateDefaultObject()
 ```
 For the same reason, all *Default Subobject*s have both `RF_DefaultSubObject` and `RF_ArchetypeObject` flags.
 
-### AActor and UComponent initialization
+## AActor and UComponent initialization
 
 
-### Class reflection data
+## Class reflection data
 Most (near all) `Z_Construct_UClass_XXX()` fuctions are called only in the initialization stage via `ProcessNewlyLoadedUObjects()`([link](https://github.com/EpicGames/UnrealEngine/blob/b4a54829162aa07a28846da2e91147912a7b67d8/Engine/Source/Runtime/CoreUObject/Private/UObject/UObjectBase.cpp#L983)).
 ![](assets/Class_reflection_data_allocation.png)
 

@@ -15,7 +15,7 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 1. [Rendering](rendering.md)
 1. [Gameplay](gameplay.md)
 
-## Thread Overview
+# Thread Overview
 
 Unreal has these several important threads:
 - Game thread
@@ -31,7 +31,7 @@ This following image is the *threads overview* in the profiler. Threads are sort
 
 We'll briefly discuss some important threads below.
 
-### Game Thread
+## Game Thread
 > see "`[IOSAppDelegate MainAppThread:]`" in the above thread overview image.
 
 Game thread's main mission is running `FEngineLoop`([link](https://github.com/EpicGames/UnrealEngine/blob/33e9eedc27e80b9e67c1d1a2667672ed23c7531b/Engine/Source/Runtime/Launch/Public/LaunchEngineLoop.h#L21)), including its initialization `PreInit()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L1158)) and tick `Tick()`([link](https://github.com/EpicGames/UnrealEngine/blob/42cbf957ad0e713dec57a5828f72d116c8083011/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp#L4012)).  
@@ -40,16 +40,16 @@ Every game is running frame by frame. Inside one frame, several submodules are c
 
 Note that in Unreal, game thread's name is `[IOSAppDelegate MainAppThread:]`, it's Unreal's "main thread", do not confuse with the process's main thread.
 
-### Main Thread
+## Main Thread
 > see "`Main Thread`" in the above thread overview image.
 
 This thread is the iOS process's main thread, it's the first thread that gets created and the entry point gets called.  
 In Unreal, Main thread doesn't carry out heavy jobs, it just handles some native iOS messages, such as touch event.
 
-### Task Threads
+## Task Threads
 Unreal has several ways to assign tasks to threads, these threads are called *Task Threads*. This task threads management will be discussed in future chapters.  
 These following threads are implemented as task threads.
-#### Render Threads
+### Render Threads
 > see "`FRenderingThread::Run()`" in the above thread overview image.
 
 Render thread calls `FRenderingThread::Run()`([link](https://github.com/EpicGames/UnrealEngine/blob/b4a54829162aa07a28846da2e91147912a7b67d8/Engine/Source/Runtime/RenderCore/Private/RenderingThread.cpp#L458)), and takes charge of all the rendering tasks, such as updating pritimitives' transform, updating particle systems, drawing slate ui elements, etc. These rendering tasks usually update and prepare rendering data for the GPU to run.
@@ -62,7 +62,7 @@ Note the thread creation call stack is reversed, the caller is under the callee.
 
 Notice that sometimes you can see there seems to be another thread running `FRenderingThread::Run()` in the Time Profiler, this is because render thread will be recreated during viewport resizes([link](https://github.com/EpicGames/UnrealEngine/blob/b4a54829162aa07a28846da2e91147912a7b67d8/Engine/Source/Runtime/RenderCore/Private/RenderingThread.cpp#L171)), and the Time Profiler captures both the destroyed and recreated render threads. There is only one render thread at any given time.
 
-##### RHI Thread
+#### RHI Thread
 What's more, Unreal can be [Parallel Rendering](https://docs.unrealengine.com/en-US/Programming/Rendering/ParallelRendering/index.html) with the RHI (Render Hardware Interface) thread, which translates the render thread's render commands into specific device GPU commands. This RHI thread may improve performance in some platform.   
 However, in iOS the RHI thread is disabled, because `GRHISupportsRHIThread`([link](https://github.com/EpicGames/UnrealEngine/blob/697a6f07ef518d03ef3611efdafc2e9a89b0fc3c/Engine/Source/Runtime/Apple/MetalRHI/Private/MetalRHI.cpp#L395)) and `bSupportsRHIThread`([link](https://github.com/EpicGames/UnrealEngine/blob/697a6f07ef518d03ef3611efdafc2e9a89b0fc3c/Engine/Source/Runtime/Apple/MetalRHI/Private/MetalRHI.cpp#L226)) is disabled. Unreal has this comment([link](https://github.com/EpicGames/UnrealEngine/blob/bcc5bcf128a758f0de72c4e460a16423a200d915/Engine/Source/Runtime/Apple/MetalRHI/Public/MetalResources.h#L15)):
 ```c++
@@ -70,7 +70,7 @@ However, in iOS the RHI thread is disabled, because `GRHISupportsRHIThread`([lin
 ```
 You might modify the source code to enable the RHI thread in mobile devices with proper device capability test.
 
-#### File I/O Threads
+### File I/O Threads
 > see "`FAsyncTask<FGenericReadRequestWorker>::DoThreadedWork()`" in the above thread overview image.
 
 

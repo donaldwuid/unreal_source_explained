@@ -17,12 +17,12 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 1. [Gameplay](gameplay.md)
 
 
-## Rendering
+# Rendering
 
 
-### Rendering Pipeline
+## Rendering Pipeline
 
-#### Basics
+### Basics
 
 Unreal duplicates most rendering-related things into 2 threads, the game thread and the rendering thread.
 
@@ -36,25 +36,34 @@ You can memorize it by these patterns:
 
 | Game Thread | Rendering Thread||
 |--|--|--|
-| Engine Module | Engine Module | Rendering Module |
+| **Engine Module** | **Engine Module** | **Rendering Module** |
+||
+|**World (Scene):**|
 |`UWorld`||`FScene`|
 |`ULevel`||
 |`USceneComponent`||
+||
+|**Primitive:**
 |`UPrimitiveComponent`|`FPrimitiveSceneProxy`||
 |||`FPrimitiveSceneInfo`|
 ||`F**SceneProxy`,<br>inehrited from `FPrimitiveSceneProxy`,<br> has `FVertexyFactory` and `UMaterialInterface`
+||
+|**View:**
 |||`FSceneView`
-|||`FSceneInfo`
 |`ULocalPlayer`||`FSceneViewState`|
 |||`FSceneRenderer`,<br>derived class: `FMobileSceneRenderer`|
+||
+|**Light:** 
 |`ULightComponent`|`FLightSceneProxy`|
 |||`FLightSceneInfo`|
+||
+|**Material and Shader:** 
 |`UMaterialInterface`,<br>derived class: `UMaterial` and `UMaterialInstance` |`FMaterial`,<br>derived class: `FMaterialResource` and `FMaterialRenderProxy`|
 |||`FShaderType`,<br>derived class: `FMaterialShaderType`|
 |||`FShader`,<br>derived class: `FMaterialShader`|
 
 
-#### New Mesh Drawing Pipeline
+### New Mesh Drawing Pipeline
 
 For better support of massive primitives, GPU driven pipeline and ray-tracing, Epic has refactored and introduce a new [Mesh Drawing Pipeline](https://docs.unrealengine.com/en-US/Programming/Rendering/MeshDrawingPipeline/index.html)(MDP) in 4.22. And Unreal give a [talk](https://www.youtube.com/watch?v=UJ6f1pm_sdU) about it.
 
@@ -66,7 +75,25 @@ Compared to the old *immediate mode* pipeline, the new MDP is kinda *retain mode
 The new MDP is all about caching, and here is its 3 different caching code paths,
 ![](assets/mdp_cache_code_paths.png)
 
-##### Mesh Batch
+Which means, during one frame,
+
+- dyanmic primitive caches nothing,
+- semi-static primitive whose vertex factory depends on the view, can only cahce its `FMeshBatch`,
+- completely static prmitive can cache both `FMeshBatch` and `FMeshDrawCommand`.
+
+#### Primitive Scene Proxy
+
+`FPrimitiveSceneProxy`([link](https://github.com/EpicGames/UnrealEngine/blob/9cb729729cf2130ed4ccb2a71eae8818916f4892/Engine/Source/Runtime/Engine/Public/PrimitiveSceneProxy.h#L126)) is just the rendering thread counterpart of `UPrimitiveComponent`. Both of them is intended to be subclassed to support different primitive types, for example,
+
+|`UPrimitiveComponent`|`FPrimitiveSceneProxy`|
+|--|--|
+|`UStaticMeshComponent`|`FStaticMeshSceneProxy`
+|`USkeletalMeshComponent`|`FSkeletalMeshSceneProxy`|
+|`UHierarchicalInstancedStaticMeshComponent`|`FHierarchicalStaticMeshSceneProxy`|
+|`ULandscapeComponent`|`FLandscapeComponentSceneProxy`|
+|...|...|
+
+#### Mesh Batch
 
 
 `FMeshBatch` cantains all infomations about **all passes** of one primitive, including the vertex buffer (in vertex factory) and material, etc.
@@ -82,8 +109,7 @@ struct FMeshBatch
 	uint32 ReverseCulling : 1;
 	uint32 bDisableBackfaceCulling : 1;
 	/** 
-	 * Pass feature relevance flags.  Allows a proxy to submit fast representations for passes which can take advantage of it, 
-	 * for example separate index buffer for depth-only rendering since vertices can be merged based on position and ignore UV differences.
+	 * Pass feature relevance flags.
 	 */
 	uint32 CastShadow		: 1;	// Whether it can be used in shadow renderpasses.
 	uint32 bUseForMaterial	: 1;	// Whether it can be used in renderpasses requiring material outputs.
@@ -100,7 +126,7 @@ struct FMeshBatch
 };
 ```
 
-For static mesh batches, they are stored in their primitive, such as,
+For static mesh batches, they are stored in their primitive, see the ownership chain below,
 
 - `FPrimitiveSceneInfo* FPrimitiveSceneProxy::PrimitiveSceneInfo`
 - `TArray<FStaticMeshBatch> FPrimitiveSceneInfo::StaticMeshes`
@@ -113,7 +139,7 @@ During each frame in `InitView()`, `FSceneRenderer` calls `FPrimitiveSceneProxy:
 ![](assets/mdp_GetDynamicMeshElements.png)
 
 
-##### Mesh Draw Command
+#### Mesh Draw Command
 
 `FMeshDrawCommand`([link](https://github.com/EpicGames/UnrealEngine/blob/017efe88c610f06521a7f48b21e930c73e4f79ea/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L442)) describes a mesh **pass** draw call, captured just above the RHI. It just contains the only data needed to draw.
 
@@ -137,13 +163,13 @@ public:
 }
 ```
 
-For static draw commands, they are stored in `FScene`, see more details in the following chain,
+For static draw commands, they are stored in `FScene`, see the ownership chain below,
 
 - `FScene* FSceneRenderer::Scene`
 - `FCachedPassMeshDrawList FScene::CachedDrawLists[EMeshPass::Num];`
 - `TSparseArray<FMeshDrawCommand> FCachedPassMeshDrawList::MeshDrawCommands`
 
-For dynamic draw commands they are stored in the `FViewInfo`, see more details in the following chain,
+For dynamic draw commands they are stored in the `FViewInfo`, see the ownership chain below,
 
 - View, `TArray<FViewInfo> FSceneRenderer::Views`
 - `TStaticArray<FParallelMeshDrawCommandPass, EMeshPass::Num> FViewInfo::ParallelMeshDrawCommandPasses`
@@ -151,7 +177,7 @@ For dynamic draw commands they are stored in the `FViewInfo`, see more details i
 - Dynamic draw command: `FDynamicMeshDrawCommandStorage FMeshDrawCommandPassSetupTaskContext::MeshDrawCommandStorage`
 - `TChunkedArray<FMeshDrawCommand> FDynamicMeshDrawCommandStorage::MeshDrawCommands`
 
-And the static and dynamic draw commands are built in the following calls,
+And the static and dynamic draw commands are built by these following calls,
 
 ![](assets/mdp_AddMeshBatch_BuildMeshDrawCommands.png)
 
@@ -160,17 +186,18 @@ Static draw commands, since they ared stored in the `FScene`, they are initiated
 After that, both the dynamic and static draw commands share the same remaining code path from `FMobileBasePassMeshProcessor::AddMeshBatch()` to `FMeshPassProcessor::BuildMeshDrawCommands<..>()`.
 
 
-For GPU Scene, it's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.
+#### Shader Bindings
 
-##### Shader Bindings
+Shaders can declare its input parameters, but who does the job to pass the actual resource argument to the shader?
 
-Shader binding binds a shader's resources to the shader. What is a shader binding? is it just the shader parameter layout description, or the shader argument resource? or both?
+*Shader binding* binds a shader's resources to the shader.
 
-Shader bindings are stored in `FMeshDrawCommand`, as follows,
+Shader bindings are stored in `FMeshDrawCommand`, see the ownership chain below,
 
 - `FMeshDrawShaderBindings FMeshDrawCommand::ShaderBindings`
 - `TArray<FMeshDrawShaderBindingsLayout> FMeshDrawShaderBindings::ShaderLayouts`
 - `class FMeshDrawSingleShaderBindings : public FMeshDrawShaderBindingsLayout`
+- `const FShaderParameterMapInfo& FMeshDrawShaderBindingsLayout::ParameterMapInfo`
 
 Duing building the mesh draw commands, `FMeshPassProcessor::BuildMeshDrawCommands<..>()` pulls the shader binding data from the shader, as follows,
 ![](assets/mdp_GetShaderBindings.png)
@@ -196,8 +223,108 @@ public:
 };
 ```
 
-`FMeshDrawShaderBindingsLayout`([link](FMeshDrawShaderBindingsLayout)) provides some additional layout accessor of `FShaderParameterMapInfo`. 
+`FMeshDrawShaderBindingsLayout`([link](FMeshDrawShaderBindingsLayout)) references one `FShaderParameterMapInfo` and provides some additional layout accessors.   
 
-`FMeshDrawSingleShaderBindings` inherits from `FMeshDrawShaderBindingsLayout`, and does the actual resource binding according to the layout.
+```c++
+/** Stores the number of each resource type that will need to be bound to a single shader, computed during shader reflection. */
+class FMeshDrawShaderBindingsLayout
+{
+public:
+	const FShaderParameterMapInfo& ParameterMapInfo;
+	...
+protected:
+	inline uint32 GetUniformBufferOffset() const { return 0; }
+	inline uint32 GetSamplerOffset() const
+	{
+		return ParameterMapInfo.UniformBuffers.Num() * sizeof(FRHIUniformBuffer*);
+	}
+	...
+	friend class FMeshDrawShaderBindings;
+};
+```
 
-### Acceleration
+`FMeshDrawSingleShaderBindings`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Public/MeshDrawShaderBindings.h#L93)) inherits from `FMeshDrawShaderBindingsLayout`, and does the actual resource binding according to the layout. Its `Data` is a binary stream recording shader resources' references.
+
+```c++
+class FMeshDrawSingleShaderBindings : public FMeshDrawShaderBindingsLayout
+{
+private:
+	uint8* Data;
+
+public:
+	template<typename UniformBufferStructType>
+	void Add(const TShaderUniformBufferParameter<UniformBufferStructType>& Parameter, const TUniformBufferRef<UniformBufferStructType>& Value)
+	{
+		...
+		// writes value to `Data` with correct offset
+		WriteBindingUniformBuffer(Value.GetReference(), Parameter.GetBaseIndex());
+	}
+	...
+	void AddTexture(
+		FShaderResourceParameter TextureParameter,
+		FShaderResourceParameter SamplerParameter,
+		FRHISamplerState* SamplerStateRHI,
+		FRHITexture* TextureRHI)
+	{
+		...
+		// writes value to `Data` with correct offset
+		WriteBindingTexture(TextureRHI, TextureParameter.GetBaseIndex());
+		...
+		WriteBindingSampler(SamplerStateRHI, SamplerParameter.GetBaseIndex());
+	}
+	...
+};
+```
+
+But since `BuildMeshDrawCommands<>()`([link](https://github.com/EpicGames/UnrealEngine/blob/697a6f07ef518d03ef3611efdafc2e9a89b0fc3c/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.inl#L10)) is the only place that do the shader bindings, how can it handles various different bindings? In fact, it's a template method, the template argument make it possible to handle it, see the snippet below,
+
+```c++
+template<typename PassShadersType, typename ShaderElementDataType>
+void FMeshPassProcessor::BuildMeshDrawCommands(..., PassShadersType PassShaders, const ShaderElementDataType& ShaderElementData)
+{
+	...
+	if (PassShaders.VertexShader)
+	{
+		FMeshDrawSingleShaderBindings ShaderBindings = SharedMeshDrawCommand.ShaderBindings.GetSingleShaderBindings(SF_Vertex);
+		PassShaders.VertexShader->GetShaderBindings(..., ShaderElementData, ShaderBindings);
+	}
+	if (PassShaders.PixelShader) { ... }
+	...
+
+	const int32 NumElements = MeshBatch.Elements.Num();
+
+	for (int32 BatchElementIndex = 0; BatchElementIndex < NumElements; BatchElementIndex++)
+	{
+		if ((1ull << BatchElementIndex) & BatchElementMask)
+		{
+			const FMeshBatchElement& BatchElement = MeshBatch.Elements[BatchElementIndex];
+			FMeshDrawCommand& MeshDrawCommand = DrawListContext->AddCommand(SharedMeshDrawCommand);
+
+			if (PassShaders.VertexShader)
+			{
+				FMeshDrawSingleShaderBindings VertexShaderBindings = MeshDrawCommand.ShaderBindings.GetSingleShaderBindings(SF_Vertex);
+				PassShaders.VertexShader->GetElementShaderBindings(..., ShaderElementData, VertexShaderBindings);
+			}
+			if (PassShaders.PixelShader) { ... }
+			...
+		}
+	}
+}
+```
+
+Based on the input template argument `PassShadersType` and `ShaderElementDataType`, `BuildMeshDrawCommands<>()` can handle different passes and diffrent shader bindings. 
+
+Take `TMobileBasePassPSPolicyParamType<FUniformLightMapPolicy>::GetShaderBindings()`([link](https://github.com/EpicGames/UnrealEngine/blob/049c0e99ee7f4ff84404a17ad4b53daa85173daa/Engine/Source/Runtime/Renderer/Private/MobileBasePass.cpp#L433)) for example, which is the most common pixel shader parameter which handles lightmap, ,
+
+![](assets/mdp_TMobileBasePassXSPolicyParamType.png)
+
+Its `ShaderElementData` is of type `const TMobileBasePassShaderElementData<FUniformLightMapPolicy>&`, therefore, it can handles custom shader bindings about lightmaps.
+
+You may see also its conterpart VS parameter type([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Private/BasePassRendering.inl#L53)).
+
+#### GPU Scene
+
+For GPU Scene, it's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.
+
+
+## Acceleration

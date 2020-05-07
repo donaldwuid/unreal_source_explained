@@ -16,9 +16,9 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 1. [Rendering](rendering.md)
 1. [Gameplay](gameplay.md)
 
-## Thread Management
+# Thread Management
 
-### RunnableThread and Runnable
+## RunnableThread and Runnable
 
 
 `FRunnableThread`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/HAL/RunnableThread.h#L19)) is a cross platfrom abstract "native thread" interface in Unreal. It has different implementaion in different OS, for example, `FRunnableThreadWin`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/Windows/WindowsRunnableThread.h#L22)) in Windows, `FRunnableThreadPThread`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/HAL/PThreadRunnableThread.h#L23)) in [POSIX-compliant](https://en.wikipedia.org/wiki/POSIX) OS, i.e., iOS and Android.
@@ -54,7 +54,7 @@ then, `FRunnableThreadPThread::Run()` calls `FRunnable::Run()`([link](https://gi
 
 RunnableThread and Runnable is the low-level thread management in Unreal. The following Async Task and Task Graph depend on Runnable.
 
-### Queued Thread and Async Task
+## Queued Thread and Async Task
 Queued Thread and Async Task is Unreal's [*thread pool*](https://en.wikipedia.org/wiki/Thread_pool) implementation. All kinds of tasks are scheduled among a pool of threads.  
 ![](assets/general_thread_pool.png)
 
@@ -161,7 +161,7 @@ public:
 ![](assets/asynctask_start.png)
 
 
-### Task Graph
+## Task Graph
 Parallel programming is hard, multithreaded programming in fine granularity is even harder, because you may spend lots of time to take care of locking, waiting, race condition in every detailed level. 
 
 Task Graph is a parallel programming with coarse granularity, and it handles dependency among async tasks. A simplified task graph of a game may be depicted as follow:

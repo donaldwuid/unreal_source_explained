@@ -16,11 +16,11 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 1. [Rendering](rendering.md)
 1. [Gameplay](gameplay.md)
 
-## Memory Management
+# Memory Management
 
-### Some Basics
+## Some Basics
 
-#### Process Virtual Memory Segments
+### Process Virtual Memory Segments
 ![](assets/process_memory_layout.png)  
 
 As the above overview shows, a process has several important memory segments, from higher virtual address to lower:
@@ -34,7 +34,7 @@ As the above overview shows, a process has several important memory segments, fr
 		- e.g., `static char * InitedChar = "Hello";`
 - **Text Segment**, holds the code data and other readonly data;
 
-#### Native Memory APIs
+### Native Memory APIs
 
 C++ operator `new` and `delete` use C `malloc()` and `free()` to allocate or release memory.
 
@@ -44,7 +44,7 @@ C++ operator `new` and `delete` use C `malloc()` and `free()` to allocate or rel
 `brk()` moves the program break (see the picture above), hence increase or decrease the heap size.  
 `mmap()` maps a file for access and lazy load the actual content into the virtual memory. When an anonymous file is mapped (by `MAP_ANONYMOUS` flag or `"/dev/zero"` file) , it's similar to memory allocation.
 
-### `FMemory` and `FMallocBinned`
+## `FMemory` and `FMallocBinned`
 Most heap memory is allocated via `FMallocBinned::Malloc()`([link](https://github.com/EpicGames/UnrealEngine/blob/517200ac3453d54b233c228a24e5060bc0439065/Engine/Source/Runtime/Core/Private/HAL/MallocBinned.cpp#L916)), which is called by `FMemory::Malloc()`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/HAL/FMemory.inl#L27)) and the like.
 ![](assets/Heap_allocation.png)
 
@@ -116,7 +116,7 @@ void* FMallocBinned::Malloc(SIZE_T Size, uint32 Alignment)
 }
 ```
 
-### Global override new operator
+## Global override new operator
 Engines (e.g. Unity) usually use [*Global overloaded new operator*](https://www.geeksforgeeks.org/overloading-new-delete-operator-c/) to hook the `new` opeartor and make its own custom memory management.  
 Unreal also overloads the global `operator new()`([link](https://github.com/EpicGames/UnrealEngine/blob/b4a54829162aa07a28846da2e91147912a7b67d8/Engine/Source/Runtime/Core/Public/Modules/Boilerplate/ModuleBoilerplate.h#L29)), which uses `FMemory::Malloc()` to allocate and manage memory.
 ```c++
