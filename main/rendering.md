@@ -314,13 +314,32 @@ void FMeshPassProcessor::BuildMeshDrawCommands(..., PassShadersType PassShaders,
 
 Based on the input template argument `PassShadersType` and `ShaderElementDataType`, `BuildMeshDrawCommands<>()` can handle different passes and diffrent shader bindings. 
 
-Take `TMobileBasePassPSPolicyParamType<FUniformLightMapPolicy>::GetShaderBindings()`([link](https://github.com/EpicGames/UnrealEngine/blob/049c0e99ee7f4ff84404a17ad4b53daa85173daa/Engine/Source/Runtime/Renderer/Private/MobileBasePass.cpp#L433)) for example, which is the most common pixel shader parameter which handles lightmap, ,
+Take `TMobileBasePassPSPolicyParamType<FUniformLightMapPolicy>::GetShaderBindings()`([link](https://github.com/EpicGames/UnrealEngine/blob/049c0e99ee7f4ff84404a17ad4b53daa85173daa/Engine/Source/Runtime/Renderer/Private/MobileBasePass.cpp#L433)) for example, which is the most common pixel shader parameter which handles lightmap, (You may also interest in its VS conterpart([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Private/BasePassRendering.inl#L53))),
 
 ![](assets/mdp_TMobileBasePassXSPolicyParamType.png)
 
-Its `ShaderElementData` is of type `const TMobileBasePassShaderElementData<FUniformLightMapPolicy>&`, therefore, it can handles custom shader bindings about lightmaps.
+Its `ShaderElementData` is of type `const TMobileBasePassShaderElementData<FUniformLightMapPolicy>&`, therefore, it can handles custom shader bindings about lightmaps, i.e., it calls `FUniformLightMapPolicy::GetPixelShaderBindings()` with `ShaderElementData.LightMapPolicyElementData`.  
 
-You may see also its conterpart VS parameter type([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Private/BasePassRendering.inl#L53)).
+
+Note that the lightmap shader resources is recored in a "uniform buffer", which records resource "handle"s, not the resource data, see the image below,
+
+![](assets/LightmapResourceClusterBuffer.png)
+
+The actual lightmap shader parameter is decaled as below([link](https://github.com/EpicGames/UnrealEngine/blob/948dcc11a7aec7a3d4a5a75ce96d56cbdcb45390/Engine/Source/Runtime/Engine/Public/SceneManagement.h#L666)),
+```c++
+BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT(FLightmapResourceClusterShaderParameters,ENGINE_API)
+	SHADER_PARAMETER_TEXTURE(Texture2D, LightMapTexture)
+	SHADER_PARAMETER_TEXTURE(Texture2D, SkyOcclusionTexture) 
+	SHADER_PARAMETER_SAMPLER(SamplerState, LightMapSampler) 
+	SHADER_PARAMETER_SAMPLER(SamplerState, SkyOcclusionSampler) 
+	...
+END_GLOBAL_SHADER_PARAMETER_STRUCT()
+```
+
+That's the boilerplate to declare shader parameters in c++, see macro `BEGIN_SHADER_PARAMETER_STRUCT`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMacros.h#L764)) and `BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMacros.h#L782)) for more details.
+
+In the end, these parameters are translated into the actual shader parameter, based on the actual graphic API, e.g., Metal in iOS:
+![](assets/LightmapResourceClusterInMetal.png)
 
 #### GPU Scene
 
