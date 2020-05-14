@@ -32,3 +32,19 @@ There are two files in it, both of them are captured in iPadPro 10.5(2017), and 
 The file with "Wait" in the filename is captured with Time Profiler's *Record Waiting Thread* option turned on, this is useful to observe the thread off-cpu waiting time.  
 The file with "GPUScene" in the filename is captured with UE 4.23's new mobile feature *mesh drawing pipeline* enabled.    
 To reduce the file size, this profile files only capture a very short amount of time, therefore, for a longer and better profile file, you are suggested to build and profile the ActionRPG game on your own.
+
+
+
+In order to debug your shaders in the GPU debuggers, you should modify Engine/Config/ConsoleVariables.ini:
+
+```ini
+; Uncomment to get detailed logs on shader compiles and the opportunity to retry on errors
+r.ShaderDevelopmentMode=1
+
+; Uncomment when running with a graphical debugger (but not when profiling)
+r.Shaders.Optimize=0
+r.Shaders.KeepDebugInfo=1
+```
+
+
+For GPU Scene, it's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.

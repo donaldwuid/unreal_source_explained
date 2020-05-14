@@ -22,6 +22,21 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 
 ## Rendering Pipeline
 
+### Prepare
+
+In order to debug your shaders in the GPU debuggers, you should modify Engine/Config/ConsoleVariables.ini:
+
+```ini
+; Uncomment to get detailed logs on shader compiles and the opportunity to retry on errors
+r.ShaderDevelopmentMode=1
+
+; Uncomment when running with a graphical debugger (but not when profiling)
+r.Shaders.Optimize=0
+r.Shaders.KeepDebugInfo=1
+```
+
+For GPU Scene, it's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.
+
 ### Basics
 
 Unreal duplicates most rendering-related things into 2 threads, the game thread and the rendering thread.
@@ -340,10 +355,6 @@ That's the boilerplate to declare shader parameters in c++, see macro `BEGIN_SHA
 
 In the end, these parameters are translated into the actual shader parameter, based on the actual graphic API, e.g., Metal in iOS:
 ![](assets/LightmapResourceClusterInMetal.png)
-
-#### GPU Scene
-
-For GPU Scene, it's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.
 
 
 ## Acceleration
