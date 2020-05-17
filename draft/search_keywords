@@ -1,0 +1,25 @@
+## Render
+
+addmeshbatch
+meshbatch::f
+getdynamicmeshelementS
+drawstaticelements
+drawmesh
+getshaderbindings
+getelementshaderbindings
+singleshaderbindings::
+shader::setparameter
+getdynamicmeshelement
+setdrawlistcontext
+fshaderresource::serialize
+addtexture
+lightmap
+getlightmap
+metaluniformbuffer
+metaluniformbuffer::updateiab
+FMaterial
+referencedtexture
+precomputedlightvolume
+FillUniformBuffer
+beginrenderingviewfamily
+FMaterialRenderProxy::EvaluateUniformExpressions

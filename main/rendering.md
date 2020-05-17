@@ -19,10 +19,7 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 
 # Rendering
 
-
-## Rendering Pipeline
-
-### Prepare
+## Prepare
 
 In order to debug your shaders in the GPU debuggers, you should modify Engine/Config/ConsoleVariables.ini:
 
@@ -37,7 +34,7 @@ r.Shaders.KeepDebugInfo=1
 
 For GPU Scene, it's disabled by default in mobile, you can enable it by setting `r.Mobile.SupportGPUScene=1` in your project's DefaultEngine.ini.
 
-### Basics
+## Basics
 
 Unreal duplicates most rendering-related things into 2 threads, the game thread and the rendering thread.
 
@@ -78,7 +75,7 @@ You can memorize it by these patterns:
 |||`FShader`,<br>derived class: `FMaterialShader`|
 
 
-### New Mesh Drawing Pipeline
+## New Mesh Drawing Pipeline
 
 For better support of massive primitives, GPU driven pipeline and ray-tracing, Epic has refactored and introduce a new [Mesh Drawing Pipeline](https://docs.unrealengine.com/en-US/Programming/Rendering/MeshDrawingPipeline/index.html)(MDP) in 4.22. And Unreal give a [talk](https://www.youtube.com/watch?v=UJ6f1pm_sdU) about it.
 
@@ -96,7 +93,7 @@ Which means, during one frame,
 - semi-static primitive whose vertex factory depends on the view, can only cahce its `FMeshBatch`,
 - completely static prmitive can cache both `FMeshBatch` and `FMeshDrawCommand`.
 
-#### Primitive Scene Proxy
+### Primitive Scene Proxy
 
 `FPrimitiveSceneProxy`([link](https://github.com/EpicGames/UnrealEngine/blob/9cb729729cf2130ed4ccb2a71eae8818916f4892/Engine/Source/Runtime/Engine/Public/PrimitiveSceneProxy.h#L126)) is just the rendering thread counterpart of `UPrimitiveComponent`. Both of them is intended to be subclassed to support different primitive types, for example,
 
@@ -108,7 +105,7 @@ Which means, during one frame,
 |`ULandscapeComponent`|`FLandscapeComponentSceneProxy`|
 |...|...|
 
-#### Mesh Batch
+### Mesh Batch
 
 
 `FMeshBatch` cantains all infomations about **all passes** of one primitive, including the vertex buffer (in vertex factory) and material, etc.
@@ -154,7 +151,7 @@ During each frame in `InitView()`, `FSceneRenderer` calls `FPrimitiveSceneProxy:
 ![](assets/mdp_GetDynamicMeshElements.png)
 
 
-#### Mesh Draw Command
+### Mesh Draw Command
 
 `FMeshDrawCommand`([link](https://github.com/EpicGames/UnrealEngine/blob/017efe88c610f06521a7f48b21e930c73e4f79ea/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L442)) describes a mesh **pass** draw call, captured just above the RHI. It just contains the only data needed to draw.
 
@@ -200,8 +197,132 @@ Dynamic draw commands, since they are view-dependant and stored in `FViewInfo`, 
 Static draw commands, since they ared stored in the `FScene`, they are initiated from `FScene::AddPrimitive()`, which of cause, right after the primitive is added to the scene.  
 After that, both the dynamic and static draw commands share the same remaining code path from `FMobileBasePassMeshProcessor::AddMeshBatch()` to `FMeshPassProcessor::BuildMeshDrawCommands<..>()`.
 
+## Material Shader Pipeline
 
-#### Shader Bindings
+### Overview
+
+Like Blueprint, *Material Editor* is also a node-based visual scripiting envrironment, for creating *Material Shader*.
+
+![](assets/rendering_material_editor.png)
+
+Each node is an *Expression*, you can use various kinds of expressions (e.g., Texture Sample, Add, etc.) to write your own shader logic. Exprssions eventually flow into the *Result Node* (e.g., M_Char_Barbrous above) via *Pin*s (e.g., Base Color, Metallic). Material shader can promote variables into *Parameter*s.
+
+*Material Instance* is subclass of Material Shader. It's data oriented and only specify the input argument of parent material shader. Changes made to material shader will cause shader recompilation, while changes of material instance won't.
+![](assets/rendering_material_instance.png)
+
+### Resources Creation
+
+TODO
+
+### Resources and Uniform Buffer
+
+How does Unreal manage shader resources? How does it pass resources from the material shader into the GPU?
+
+In `FUniformExpressionSet::FillUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/940eb3a4a629936395b5b5ef078792d8679f0cbf/Engine/Source/Runtime/Engine/Private/Materials/MaterialUniformExpressions.cpp#L435)), expressions' value is extracted and fill into `TempBuffer`.
+
+```c++
+void FUniformExpressionSet::FillUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, uint8* TempBuffer, ...) const {
+	...
+	void* BufferCursor = TempBuffer;
+	...
+	// Dump vector expression into the buffer.
+	for(int32 VectorIndex = 0;VectorIndex < UniformVectorExpressions.Num();++VectorIndex) {
+		FLinearColor VectorValue(0, 0, 0, 0);
+		UniformVectorExpressions[VectorIndex]->GetNumberValue(MaterialRenderContext, VectorValue);
+
+		FLinearColor* DestAddress = (FLinearColor*)BufferCursor;
+		*DestAddress = VectorValue;
+		BufferCursor = DestAddress + 1;
+	}
+	// Cache 2D texture uniform expressions.
+	for(int32 ExpressionIndex = 0;ExpressionIndex < Uniform2DTextureExpressions.Num();ExpressionIndex++) {
+		const UTexture* Value;
+		Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
+		void** ResourceTableTexturePtr = (void**)((uint8*)BufferCursor + 0 * SHADER_PARAMETER_POINTER_ALIGNMENT);
+		void** ResourceTableSamplerPtr = (void**)((uint8*)BufferCursor + 1 * SHADER_PARAMETER_POINTER_ALIGNMENT);
+		BufferCursor = ((uint8*)BufferCursor) + (SHADER_PARAMETER_POINTER_ALIGNMENT * 2);
+		...
+		*ResourceTableTexturePtr = Value->TextureReference.TextureReferenceRHI;
+		FSamplerStateRHIRef* SamplerSource = &Value->Resource->SamplerStateRHI;
+		*ResourceTableSamplerPtr = *SamplerSource;
+	}
+	...
+}
+```
+
+Where dose `TempBuffer` come from? From the call stack below, we can find out.
+
+![](assets/rendering_filluniformbuffer.png)
+
+Expressions' value is recoreded in `FMaterialRenderProxy::UniformExpressionCache[]`([link](https://github.com/EpicGames/UnrealEngine/blob/534dd2cadda59f8d31f3dd8b80d5cd89f084a4f8/Engine/Source/Runtime/Engine/Public/MaterialShared.h#L1920)). That makes sense, because `FMaterialRenderProxy` is the render proxy of a material.
+
+```c++
+/**
+ * A material render proxy used by the renderer.
+ */
+class ENGINE_VTABLE FMaterialRenderProxy : public FRenderResource {
+public:
+	/** Cached uniform expressions. */
+	mutable FUniformExpressionCache UniformExpressionCache[ERHIFeatureLevel::Num];
+	/** Cached external texture immutable samplers */
+	mutable FImmutableSamplerState ImmutableSamplerState;
+
+
+	/**
+	 * Evaluates uniform expressions and stores them in OutUniformExpressionCache.
+	 * @param OutUniformExpressionCache - The uniform expression cache to build.
+	 * @param MaterialRenderContext - The context for which to cache expressions.
+	 */
+	void ENGINE_API EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context, class FRHICommandList* CommandListIfLocalMode = nullptr) const;
+
+	virtual bool GetVectorValue(const FMaterialParameterInfo& ParameterInfo, FLinearColor* OutValue, const FMaterialRenderContext& Context) const = 0;
+	virtual bool GetScalarValue(const FMaterialParameterInfo& ParameterInfo, float* OutValue, const FMaterialRenderContext& Context) const = 0;
+	virtual bool GetTextureValue(const FMaterialParameterInfo& ParameterInfo,const UTexture** OutValue, const FMaterialRenderContext& Context) const = 0;
+
+	// FRenderResource interface.
+	ENGINE_API virtual void InitDynamicRHI() override;
+	ENGINE_API virtual void ReleaseDynamicRHI() override;
+	ENGINE_API virtual void ReleaseResource() override;
+	...
+private:
+	/** 
+	 * Tracks all material render proxies in all scenes, can only be accessed on the rendering thread.
+	 * This is used to propagate new shader maps to materials being used for rendering.
+	 */
+	ENGINE_API static TSet<FMaterialRenderProxy*> MaterialRenderProxyMap;
+	...
+};
+```
+
+`FUniformExpressionCache` wraps a `FUniformBufferRHIRef`, which essentially is a reference to `FUniformBufferRHI`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RHI/Public/RHIResources.h#L363)). So, the key question is, what is a uniform buffer?
+
+Unreal uses *Uniform Buffer* to represent *Constant Buffer* and *Resource Handle Table* in RHI. Different graphic API implements `FUniformBufferRHI` to create the actual constant buffer and resource table.
+
+In iOS, `FMetalUniformBuffer::FMetalUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Apple/MetalRHI/Private/MetalUniformBuffer.cpp#L177)) allocates about 120MB memory, which is huge.
+![](assets/rendering_uniformbuffer_allocation.png)
+
+In Direct3D, it's created via `FD3D11DynamicRHI::RHICreateUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/e99c0b858e283af77f7ca78e249fd6376da0e33d/Engine/Source/Runtime/Windows/D3D11RHI/Private/D3D11UniformBuffer.cpp#L174)),
+![](assets/rendering_uniformbuffer_created3d11.png)
+
+TODO: How resource handle is related to the actual GPU resources.
+
+
+<!--
+```c++
+class FRHIUniformBuffer : public FRHIResource
+{
+
+private:
+	/** Layout of the uniform buffer. */
+	const FRHIUniformBufferLayout* Layout;
+
+	uint32 LayoutConstantBufferSize;
+};
+```
+-->
+
+
+### Shader Bindings
 
 Shaders can declare its input parameters, but who does the job to pass the actual resource argument to the shader?
 
@@ -214,7 +335,7 @@ Shader bindings are stored in `FMeshDrawCommand`, see the ownership chain below,
 - `class FMeshDrawSingleShaderBindings : public FMeshDrawShaderBindingsLayout`
 - `const FShaderParameterMapInfo& FMeshDrawShaderBindingsLayout::ParameterMapInfo`
 
-Duing building the mesh draw commands, `FMeshPassProcessor::BuildMeshDrawCommands<..>()` pulls the shader binding data from the shader, as follows,
+During building the mesh draw commands, `FMeshPassProcessor::BuildMeshDrawCommands<..>()` pulls the shader binding data from the shader, as follows,
 ![](assets/mdp_GetShaderBindings.png)
 
 `FShaderParameterMapInfo`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/Shader.h#L246)) describes the layout of shader's parameters. It contains parameters' base index and size of various resources (e.g., Uniform Buffers, Texture Samplers, SRVs and loose parameter buffers). It's serialized into `FShaderResource::ParameterMapInfo` during the game start up or the new level streamed in.
@@ -357,4 +478,4 @@ In the end, these parameters are translated into the actual shader parameter, ba
 ![](assets/LightmapResourceClusterInMetal.png)
 
 
-## Acceleration
+# Acceleration
