@@ -38,15 +38,21 @@ For GPU Scene, it's disabled by default in mobile, you can enable it by setting 
 
 Unreal duplicates most rendering-related things into 2 threads, the game thread and the rendering thread.
 
-You can memorize it by these patterns:
+Most rendering codes are in 3 modules, Engine, Renderer and RenderCore. During C++ linking, 
+
+- Renderer depends on Engine and RenderCore,([link](https://github.com/EpicGames/UnrealEngine/blob/c33049fcbde20fb59e44dfc32b25dc610561314c/Engine/Source/Runtime/Renderer/Renderer.Build.cs#L19))
+- Engine only depends on RenderCore,([link](https://github.com/EpicGames/UnrealEngine/blob/f9b3324b32be95b1fd37235e7b7f2fbb502db285/Engine/Source/Runtime/Engine/Engine.Build.cs#L73))
+- RenderCore doesn't depend on other two.
+
+Following is some important rendering-related classes, you can summarize it by these patterns:
 
 - `U**` are all in game thread,
-	- all of their codes are in engine module,
+	- all of their codes are in Engine module,
 - `F**` are all in rendering thread,
-	- `F**Proxy` and `FMaterial`'s codes are all in game module,
-	- others' codes are in render module.
+	- `F**Proxy` and `FMaterial`'s codes are all in Engine module,
+	- others' codes are in Renderer or RenderCore module.
 
-| Game Thread | Rendering Thread||
+| Game Thread | Rendering Thread| Rendering Thread|
 |--|--|--|
 | **Engine Module** | **Engine Module** | **Rendering Module** |
 ||
