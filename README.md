@@ -2,7 +2,7 @@
 
 ## About
 
-Unreal Source Explained (USE) is an Unreal source code analysis, based on profilers.
+Unreal Source Explained (USE) is an Unreal source code analysis, **based on profilers**.
 
 USE is just several markdown files, see [main.md/overview](main/main.md).
 
@@ -16,7 +16,7 @@ USE's goals are:
 - in English;
 
 USE is based on:
-- Unreal 4.23 source code;
+- Unreal 4.23~4.25 source code;
 - XCode 11 and its Instrument, in order to capture more details, such as graphic memory allocations;
 - the [*ActionRPG*](https://www.unrealengine.com/marketplace/en-US/slug/action-rpg) demo, this is a mobile demo that can run on mobile devices, it's public that everyone can access, and it's not-too-simple with enough engine feature applied, such as blueprints, game ability system, etc.;
 - running on iOS devices with:
@@ -29,7 +29,27 @@ USE is working in progress, I will add contents persitently, usually when
 
 Therefore, in order to get more code explained, or to improve the explaination quality, **you are always welcomed to fork, add content and make pull-request!**
 
-## Profiling
+## Why Profilers?
+
+Why analyze source code by profilers? Why not use debuggers or just read plain source codes by IDEs' source context-aware tool? In fact, I do. I use various tools to help me to read and understand Unreal codes. But they all have different pros and cons:
+
+||Profiler<br>(running game in device with XCode Instruments)| Debugger<br>(running Unreal Editor with Visual Studio) | Source Context-aware Searching |
+|--|--|--|--|
+| Call stack | 👍👍👍 | 👍👍👍 | ❌
+| Big Data<br>(analyize by data mining) | 👍👍👍 | ❌ | ❌
+| Variable value | ❌ | 👍👍👍 | ❌
+| Branching | ❌ | 👍👍👍 | ❌
+| Run on actual device | 👍👍👍 |  ❌ | ❌
+| More accurate<br>(Less guess) | 👍👍👍 | 👍👍|❌
+| Cover all cases | 👍 | ❌ | 👍👍👍
+| Cover all threads | 👍👍👍 | 👍 | ❌
+| Easy to setup | ❌ | 👍 | 👍👍👍
+| Easy to analyze after setup | 👍👍👍 | 👍 | ❌
+| Overall | 👍×19, ❌×3 | 👍×14, ❌×3 | 👍×6, ❌×8
+
+We can see profiler has more thumbs up than the other two in terms of code analysis, hence USE is a profiler-first source analysis. However, remember to use them all and use them wisely.
+
+## Profiling Guide
 
 I've upload some instrument files in the *profile* folder, you can use it as a quick overview. **XCode 11** is required to open these files.   
 There are two files in it, both of them are captured in iPadPro 10.5(2017), and contain the Time Profiler and the Allocation.   

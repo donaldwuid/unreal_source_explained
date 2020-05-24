@@ -4,16 +4,19 @@
 Unreal Source Explained (USE) is an Unreal source code analysis, based on profilers.  
 For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_explained) in github.
 
+
 ## Contents
 
-1. Overview
-1. [Initialization](initialization.md)
-1. [Loop](loop.md)
-1. [Memory Management](memory.md)
-1. [Thread Management](thread.md)
-1. [Blueprint Visual Scripting](scripting.md)
-1. [Rendering](rendering.md)
-1. [Gameplay](gameplay.md)
+See [Table of Contents](toc.md) for the complete content list. Some important contents are listed below, 
+
+- [Overview](main.md)
+- [Initialization](initialization.md)
+- [Loop](loop.md)
+- [Memory Management](memory.md)
+- [Thread Management](thread.md)
+- [Blueprint Visual Scripting](scripting.md)
+- [Rendering](rendering.md)
+- [Gameplay](gameplay.md)
 
 # Thread Overview
 

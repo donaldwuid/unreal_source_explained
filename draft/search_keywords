@@ -23,3 +23,12 @@ precomputedlightvolume
 FillUniformBuffer
 beginrenderingviewfamily
 FMaterialRenderProxy::EvaluateUniformExpressions
+createuniform
+schedulerender
+addreflectioncapture
+mtlpp::Device::NewTexture
+mtlpp::Device::NewBuffer
+mtlpp::CommandBuffer::RenderCommandEncoder
+mtlpp::Device::NewRenderPipelineState
+mtlpp::BlitCommandEncoder::Copy
+FMetalViewport::GetDrawable(EMetalViewportAccessFlag)
