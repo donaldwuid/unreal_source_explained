@@ -39,7 +39,7 @@ We can dig deeper and summerize by this following table.,
 | Index Buffer | `FIndexBuffer::IndexBufferRHI`([link](https://github.com/EpicGames/UnrealEngine/blob/3b4ff4c5771927f73ea309e1d15257587c36acf4/Engine/Source/Runtime/RenderCore/Public/RenderResource.h#L570)) | `FRawStaticIndexBuffer::InitRHI()`<br>`FParticleIndexBuffer::InitRHI()`,<br>etc.|`RHICreateIndexBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/7a2cc9763c8cf1766337f4bae385ced20d49abad/Engine/Source/Runtime/RHI/Public/RHICommandList.h#L5084))| `FDynamicRHI::RHICreateIndexBuffer()`'s implmentation([link](https://github.com/EpicGames/UnrealEngine/blob/3b09b8309ae4c80c2a29b4e83aa2258baf829320/Engine/Source/Runtime/RHI/Public/DynamicRHI.h#L532))|same as above | same as above 
 | Uniform Buffer | `FPrimitiveSceneProxy::UniformBuffer`([link](https://github.com/EpicGames/UnrealEngine/blob/39c685b761f485bd861a2dc3988336c1e0540b45/Engine/Source/Runtime/Engine/Public/PrimitiveSceneProxy.h#L1079))<br>`FMaterialRenderProxy::UniformExpressionCache[]`([link](https://github.com/EpicGames/UnrealEngine/blob/534dd2cadda59f8d31f3dd8b80d5cd89f084a4f8/Engine/Source/Runtime/Engine/Public/MaterialShared.h#L1920)),<br>etc. | `FPrimitiveSceneProxy::UpdateUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/2a4b8997a44763a5417d82556dffcb6db2a0f2ec/Engine/Source/Runtime/Engine/Private/PrimitiveSceneProxy.cpp#L339))<br>`FMaterialRenderProxy::EvaluateUniformExpressions()`([link](https://github.com/EpicGames/UnrealEngine/blob/5ddcfbc323500f0fdb93a2d1c06cd5cbfb813ca5/Engine/Source/Runtime/Engine/Private/Materials/MaterialShared.cpp#L2387))<br>`TUniformBufferRef<TBufferStruct>::CreateUniformBufferImmediate()`([link](https://github.com/EpicGames/UnrealEngine/blob/410c720ac7c70747a68b46cf93fdc2b762206c42/Engine/Source/Runtime/RenderCore/Public/UniformBuffer.h#L22)),<br>etc.|`CreateUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/7a2cc9763c8cf1766337f4bae385ced20d49abad/Engine/Source/Runtime/RHI/Public/RHICommandList.h#L4020))| `FDynamicRHI::RHICreateUniformBuffer()`'s implmentation([link](https://github.com/EpicGames/UnrealEngine/blob/3b09b8309ae4c80c2a29b4e83aa2258baf829320/Engine/Source/Runtime/RHI/Public/DynamicRHI.h#L527))| same as above | same as above 
 | Shader | `GGraphicsPipelineCache`([link](https://github.com/EpicGames/UnrealEngine/blob/aa9705149bf144a3d016174ab3ac46b5205ca4f1/Engine/Source/Runtime/RHI/Private/PipelineStateCache.cpp#L601)) |`FMeshDrawCommand::SubmitDraw()`([link](https://github.com/EpicGames/UnrealEngine/blob/54f8b2537d8743c2ccd0daea780dc6694ad38213/Engine/Source/Runtime/Renderer/Private/MeshPassProcessor.cpp#L1150)), etc.|`SetGraphicsPipelineState()`([link](https://github.com/EpicGames/UnrealEngine/blob/aa9705149bf144a3d016174ab3ac46b5205ca4f1/Engine/Source/Runtime/RHI/Private/PipelineStateCache.cpp#L303))|`FDynamicRHI::RHICreateGraphicsPipelineState()`([link](https://github.com/EpicGames/UnrealEngine/blob/3b09b8309ae4c80c2a29b4e83aa2258baf829320/Engine/Source/Runtime/RHI/Public/DynamicRHI.h#L499))|`mtlpp::Device::NewRenderPipelineState()`| `[MTLCompiler compileFunctionInternal]`
-| RenderPass | `GRHICommandList`([link](https://github.com/EpicGames/UnrealEngine/blob/7d15cb2de6bc13add5af776a26ce6d3bb729aa41/Engine/Source/Runtime/RHI/Private/RHICommandList.cpp#L145)) |`FMobileSceneRenderer::Render()`([link](https://github.com/EpicGames/UnrealEngine/blob/a3f1a9134b3163561b1e7557fcfea7235ac2d9a3/Engine/Source/Runtime/Renderer/Private/MobileShadingRenderer.cpp#L610)), etc.|`BeginRenderPass()`([link](https://github.com/EpicGames/UnrealEngine/blob/7a2cc9763c8cf1766337f4bae385ced20d49abad/Engine/Source/Runtime/RHI/Public/RHICommandList.h#L3468))|`IRHICommandContext::RHIBeginRenderPass()`'s implementation([link](https://github.com/EpicGames/UnrealEngine/blob/3b29852588abe7944213ab0480db6c80435f29ea/Engine/Source/Runtime/RHI/Public/RHIContext.h#L613))|`mtlpp::CommandBuffer::RenderCommandEncoder()`| `MTLIOAccelCommandBufferStorageAllocResourceAtIndex`
+| RenderPass | `GRHICommandList`([link](https://github.com/EpicGames/UnrealEngine/blob/7d15cb2de6bc13add5af776a26ce6d3bb729aa41/Engine/Source/Runtime/RHI/Private/RHICommandList.cpp#L145)) |`FMobileSceneRenderer::Render()`([link](https://github.com/EpicGames/UnrealEngine/blob/a3f1a9134b3163561b1e7557fcfea7235ac2d9a3/Engine/Source/Runtime/Renderer/Private/MobileShadingRenderer.cpp#L610)), etc.|`BeginRenderPass()`([link](https://github.com/EpicGames/UnrealEngineÍ/blob/7a2cc9763c8cf1766337f4bae385ced20d49abad/Engine/Source/Runtime/RHI/Public/RHICommandList.h#L3468))|`IRHICommandContext::RHIBeginRenderPass()`'s implementation([link](https://github.com/EpicGames/UnrealEngine/blob/3b29852588abe7944213ab0480db6c80435f29ea/Engine/Source/Runtime/RHI/Public/RHIContext.h#L613))|`mtlpp::CommandBuffer::RenderCommandEncoder()`| `MTLIOAccelCommandBufferStorageAllocResourceAtIndex`
 
 All resources are allocated insdie render thread. Vertex buffer, index buffer, and textures are allocated from various `InitRHI()`s since they all implement `FRenderResource::InitRHI()`([link](https://github.com/EpicGames/UnrealEngine/blob/3b4ff4c5771927f73ea309e1d15257587c36acf4/Engine/Source/Runtime/RenderCore/Public/RenderResource.h#L94)) abstract method.
 
@@ -57,7 +57,7 @@ Rendering resources are allocated in render thread. 80% of memory are allocated 
 
 So far, we know Unreal allocates various resources and use `FRenderResource`'s derived implementation to hold the resource reference. But, how does it pass resources from the material shader into the GPU?
 
-Recall in the [Rendering Basics](rendering.md) chapter that Unreal's material has lots of expressions. One expression can be a Texture Sample node. So the key question is, how does one expression relate to the resource?
+Recall in the [Rendering Basics](rendering.md) chapter that Unreal's material has lots of expressions, such as texture sample node. So the key question is, how does one expression relate to the resource?
 
 In `FUniformExpressionSet::FillUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/940eb3a4a629936395b5b5ef078792d8679f0cbf/Engine/Source/Runtime/Engine/Private/Materials/MaterialUniformExpressions.cpp#L435)), expressions' value is extracted and fill into `TempBuffer`.
 
@@ -135,44 +135,119 @@ private:
 };
 ```
 
-`FUniformExpressionCache` wraps a `FUniformBufferRHIRef`, which essentially is a reference to `FUniformBufferRHI`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RHI/Public/RHIResources.h#L363)). So, the key question is, what is a uniform buffer?
+`FUniformExpressionCache` wraps a `FUniformBufferRHIRef`, which essentially is a reference to `FUniformBufferRHI`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RHI/Public/RHIResources.h#L363)). 
+
+So, the key question is, what is a uniform buffer?
 
 Unreal uses *Uniform Buffer* to represent *Constant Buffer* and *Resource Table* in RHI. Different graphic API implements `FUniformBufferRHI` to create the actual constant buffer and resource table.
 
-In iOS, `FMetalUniformBuffer::FMetalUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Apple/MetalRHI/Private/MetalUniformBuffer.cpp#L177)) allocates about 120MB memory, which is huge.
-![](assets/rendering_uniformbuffer_allocation.png)
+From `UniformExpressionSet::FillUniformBuffer()` above, we know it fills binary streams into the content of `FUniformBufferRHI`. It fills color as value into the binary stream as `FLinearColor`, and it fills texture as pointer `void*` with `TextureReferenceRHI`. Note all `FXXXRHIRef` is of type `TRefCountPtr<XXX>`, and `TRefCountPtr` is just a plain object with only one (RHI object) pointer([link]((https://github.com/EpicGames/UnrealEngine/blob/aa9705149bf144a3d016174ab3ac46b5205ca4f1/Engine/Source/Runtime/Core/Public/Templates/RefCounting.h#L301))) and no virtual methods hence no vtable, hence this pointer is copied into the binary stream . See also [C++ Object Model](http://lifegoo.pluskid.org/upload/doc/object_models/C++%20Object%20Model.pdf) for the C++ memory layout details.
+
+> Which also means, if we need to modify `TRefCountPtr` (What?!), we must keep its memory layout's first word is always this RHI pointer, do not add virtual functions or new data member before this pointer
+
+After the uniform binary stream content is filled, the content is pass to the RHI to create a new, or update an existed, uniform buffer([link](https://github.com/EpicGames/UnrealEngine/blob/5ddcfbc323500f0fdb93a2d1c06cd5cbfb813ca5/Engine/Source/Runtime/Engine/Private/Materials/MaterialShared.cpp#L2383)).
+
+```c++
+void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context, ...) const
+{
+	...
+	const FRHIUniformBufferLayout& UniformBufferLayout = UniformExpressionSet.GetUniformBufferLayout();
+	FMemMark Mark(FMemStack::Get());
+	uint8* TempBuffer = FMemStack::Get().PushBytes(UniformBufferLayout.ConstantBufferSize, SHADER_PARAMETER_STRUCT_ALIGNMENT);
+
+	UniformExpressionSet.FillUniformBuffer(Context, OutUniformExpressionCache, TempBuffer, UniformBufferLayout.ConstantBufferSize);
+	
+	...
+
+		if (IsValidRef(OutUniformExpressionCache.UniformBuffer)) {
+			RHIUpdateUniformBuffer(OutUniformExpressionCache.UniformBuffer, TempBuffer);
+		}
+		else {
+			OutUniformExpressionCache.UniformBuffer = RHICreateUniformBuffer(TempBuffer, UniformBufferLayout, UniformBuffer_MultiFrame);
+		}
+	...
+	OutUniformExpressionCache.bUpToDate = true;
+}
+```
+
+Note when creating, content binary stream's layout format is also pass to RHI to deserialize the uniform buffer.
+
+Different graphic API has different implementation of `FRHIUniformBuffer`, and holds the actual GPU buffer. 
+```c++
+class FRHIUniformBuffer : public FRHIResource {
+	...
+	/** Layout of the uniform buffer. */
+	const FRHIUniformBufferLayout* Layout;
+	uint32 LayoutConstantBufferSize;
+};
+```
+
+
+`FD3D11UniformBuffer`([link](https://github.com/EpicGames/UnrealEngine/blob/bbb956438811f8c7004e9d03eec17e8d83bf7ddb/Engine/Source/Runtime/Windows/D3D11RHI/Public/D3D11Resources.h#L676))'s `Resource` holds the actual D3D11 buffer pointer:
+```c++
+/** Uniform buffer resource class. */
+class FD3D11UniformBuffer : public FRHIUniformBuffer {
+public:
+	/** The D3D11 constant buffer resource */
+	TRefCountPtr<ID3D11Buffer> Resource;
+	...
+	/** Resource table containing RHI references. */
+	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
+	...
+private:
+	class FD3D11DynamicRHI* D3D11RHI;
+};
+```
+
+`FMetalUniformBuffer`([link](https://github.com/EpicGames/UnrealEngine/blob/ecdba1fc606e95e54cc776a7ee9ae66bed353604/Engine/Source/Runtime/Apple/MetalRHI/Public/MetalResources.h#L1064))'s `Buffer` hold the actual Metal buffer reference which stores the contant value.
+```c++
+class FMetalRHIBuffer;
+class FMetalUniformBuffer : public FRHIUniformBuffer, public FMetalRHIBuffer {
+	...
+	/** Resource table containing RHI references. */
+	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
+};
+
+class FMetalRHIBuffer {
+	...
+	// balsa buffer memory
+	FMetalBuffer Buffer;
+	// A temporary shared/CPU accessible buffer for upload/download
+	FMetalBuffer CPUBuffer;
+	/** Buffer for small buffers < 4Kb to avoid heap fragmentation. */
+	FMetalBufferData* Data;
+	// Initial buffer size.
+	uint32 Size;
+	...
+};
+```
 
 In Direct3D, it's created via `FD3D11DynamicRHI::RHICreateUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/e99c0b858e283af77f7ca78e249fd6376da0e33d/Engine/Source/Runtime/Windows/D3D11RHI/Private/D3D11UniformBuffer.cpp#L174)),
 ![](assets/rendering_uniformbuffer_created3d11.png)
 
-TODO: How resource handle is related to the actual GPU resources.
+In iOS, `FMetalUniformBuffer::FMetalUniformBuffer()`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Apple/MetalRHI/Private/MetalUniformBuffer.cpp#L177)) allocates about 120MB memory, which is huge.
+![](assets/rendering_uniformbuffer_allocation.png)
+
+To sum up, again, Unreal uses uniform buffer to reference the constant values buffer and the `FRHIResource` table. The constant value buffer is allocated in the GPU memory. The `ResourceTable` is an `TArray<FRHIResource>` allocated in the heap to store used pointer to the various `FRHIResource` objects, such as `FRHITexture2D`('s actual implementation, e.g. `FMetalTexture2D`).
 
 
-<!--
-```c++
-class FRHIUniformBuffer : public FRHIResource
-{
+## Shader Resource Bindings
 
-private:
-	/** Layout of the uniform buffer. */
-	const FRHIUniformBufferLayout* Layout;
+Now, we've known how various resources are allocated, and how they are recorded in the uniform buffer. The next question is, how does the uniform buffer is chosen, and bind the resource to the GPU. Who does the job to pass the actual resource argument to the shader?
 
-	uint32 LayoutConstantBufferSize;
-};
-```
--->
-
-
-## Shader Bindings
-
-Shaders can declare its input parameters, but who does the job to pass the actual resource argument to the shader?
-
-*Shader binding* binds a shader's resources to the shader.
+The mechanism *Shader (Resource) binding* binds a shader's resources to the shader.
 
 Shader bindings are stored in `FMeshDrawCommand`, see the ownership chain below,
 
+Shader binding data:
+
 - `FMeshDrawShaderBindings FMeshDrawCommand::ShaderBindings`
-- `TArray<FMeshDrawShaderBindingsLayout> FMeshDrawShaderBindings::ShaderLayouts`
+- `FData FMeshDrawShaderBindings::Data`([link](https://github.com/EpicGames/UnrealEngine/blob/2336049575bc9eb9ea553045df9b57b75c549a8f/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L761))
+
+Shader binding layout:
+
+- `FMeshDrawShaderBindings FMeshDrawCommand::ShaderBindings`
+- `TArray<FMeshDrawShaderBindingsLayout> FMeshDrawShaderBindings::ShaderLayouts`([link](https://github.com/EpicGames/UnrealEngine/blob/2336049575bc9eb9ea553045df9b57b75c549a8f/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L745))
 - `class FMeshDrawSingleShaderBindings : public FMeshDrawShaderBindingsLayout`
 - `const FShaderParameterMapInfo& FMeshDrawShaderBindingsLayout::ParameterMapInfo`
 
@@ -220,7 +295,7 @@ protected:
 };
 ```
 
-`FMeshDrawSingleShaderBindings`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Public/MeshDrawShaderBindings.h#L93)) inherits from `FMeshDrawShaderBindingsLayout`, and does the actual resource binding according to the layout. Its `Data` is a binary stream recording shader resources' references.
+`FMeshDrawSingleShaderBindings`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Public/MeshDrawShaderBindings.h#L93)) inherits from `FMeshDrawShaderBindingsLayout`, and does the actual resource binding according to the layout. Its `Data` is a pointer to the `FMeshDrawShaderBindings::Data`([link](https://github.com/EpicGames/UnrealEngine/blob/2336049575bc9eb9ea553045df9b57b75c549a8f/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L761)) and is a binary stream recording shader resources' references.
 
 ```c++
 class FMeshDrawSingleShaderBindings : public FMeshDrawShaderBindingsLayout
@@ -289,9 +364,28 @@ void FMeshPassProcessor::BuildMeshDrawCommands(..., PassShadersType PassShaders,
 }
 ```
 
-Based on the input template argument `PassShadersType` and `ShaderElementDataType`, `BuildMeshDrawCommands<>()` can handle different passes and diffrent shader bindings. 
+Based on the input template argument `PassShadersType` and `ShaderElementDataType`, `BuildMeshDrawCommands<>()` can handle different passes and diffrent shader bindings, by calling the template's. 
 
-Take `TMobileBasePassPSPolicyParamType<FUniformLightMapPolicy>::GetShaderBindings()`([link](https://github.com/EpicGames/UnrealEngine/blob/049c0e99ee7f4ff84404a17ad4b53daa85173daa/Engine/Source/Runtime/Renderer/Private/MobileBasePass.cpp#L433)) for example, which is the most common pixel shader parameter which handles lightmap, (You may also interest in its VS conterpart([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/Renderer/Private/BasePassRendering.inl#L53))),
+Take `TMobileBasePassPSPolicyParamType<FUniformLightMapPolicy>::GetShaderBindings()`([link](https://github.com/EpicGames/UnrealEngine/blob/049c0e99ee7f4ff84404a17ad4b53daa85173daa/Engine/Source/Runtime/Renderer/Private/MobileBasePass.cpp#L433)) for example, which is the most common pixel shader parameter which handles lightmap,
+
+```c++
+void FUniformLightMapPolicy::GetPixelShaderBindings(
+	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+	const ElementDataType& ShaderElementData,
+	const PixelParametersType* PixelShaderParameters,
+	FMeshDrawSingleShaderBindings& ShaderBindings)
+{
+	FRHIUniformBuffer* PrecomputedLightingBuffer = nullptr;
+	FRHIUniformBuffer* LightmapResourceClusterBuffer = nullptr;
+	FRHIUniformBuffer* IndirectLightingCacheBuffer = nullptr;
+
+	SetupLCIUniformBuffers(PrimitiveSceneProxy, ShaderElementData, PrecomputedLightingBuffer, LightmapResourceClusterBuffer, IndirectLightingCacheBuffer);
+
+	ShaderBindings.Add(PixelShaderParameters->PrecomputedLightingBufferParameter, PrecomputedLightingBuffer);
+	ShaderBindings.Add(PixelShaderParameters->IndirectLightingCacheParameter, IndirectLightingCacheBuffer);
+	ShaderBindings.Add(PixelShaderParameters->LightmapResourceCluster, LightmapResourceClusterBuffer);
+}
+```
 
 ![](assets/mdp_TMobileBasePassXSPolicyParamType.png)
 
@@ -301,6 +395,8 @@ Its `ShaderElementData` is of type `const TMobileBasePassShaderElementData<FUnif
 Note that the lightmap shader resources is recored in a "uniform buffer", which records resource "handle"s, not the resource data, see the image below,
 
 ![](assets/LightmapResourceClusterBuffer.png)
+
+After the uniform buffer pointer is collected, `FUniformLightMapPolicy::GetPixelShaderBindings()` add them into the shader binding with *Shader Parameter* as the key.
 
 The actual lightmap shader parameter is decaled as below([link](https://github.com/EpicGames/UnrealEngine/blob/948dcc11a7aec7a3d4a5a75ce96d56cbdcb45390/Engine/Source/Runtime/Engine/Public/SceneManagement.h#L666)),
 ```c++
@@ -314,6 +410,13 @@ END_GLOBAL_SHADER_PARAMETER_STRUCT()
 ```
 
 That's the boilerplate to declare shader parameters in c++, see macro `BEGIN_SHADER_PARAMETER_STRUCT`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMacros.h#L764)) and `BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMacros.h#L782)) for more details.
+
+![](assets/rendering_set_texture_from_resource_table.png)
+
+![](assets/rendering_set_resources_from_table.png)
+
+
+
 
 In the end, these parameters are translated into the actual shader parameter, based on the actual graphic API, e.g., Metal in iOS:
 ![](assets/LightmapResourceClusterInMetal.png)
