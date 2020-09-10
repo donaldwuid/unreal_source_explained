@@ -27,6 +27,9 @@ createuniform
 schedulerender
 addreflectioncapture
 
+evaluateuniformexpression
+commitresourcetable
+computerelevance
 
 mtlpp::Device::NewTexture
 mtlpp::Device::NewBuffer
@@ -39,3 +42,7 @@ CreateIndexBuffer
 SetShaderTexture
 SetShaderBuffer
 FMetalStateCache::CommitRenderResources
+
+getsingleshaderbindings
+
+dispatchpasssetup

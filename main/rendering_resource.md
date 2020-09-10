@@ -346,12 +346,24 @@ inline void WriteBindingUniformBuffer(FRHIUniformBuffer* Value, uint32 BaseIndex
 		}
 	}
 
+	// USE: If found the index, the value is written into `Data` with correct index.
 	if (FoundIndex >= 0)
 	{
 		GetUniformBufferStart()[FoundIndex] = Value;
 	}
 }
 ```
+So, the next 2 key questions are, the begninning and the termination of this shader resource flow:
+
+1. the beginning: how does shader parameter layout (`FShaderParameterMapInfo`) is generated,
+1. the termination: how does the shader binding data (`FMeshDrawShaderBindings::Data`, which records constant data and resource referneces) go to GPU.
+
+For the second question, we can know from below image that, in Metal, the `Data` goes into Metal via the following stack, including `FMetalStateCache::CommitResourceTable()` and Metal's enocder set resource APIs.
+
+![](assets/rendering_commit_resource_table.png)
+![](assets/rendering_set_texture_from_resource_table.png)
+
+![](assets/rendering_set_resources_from_table.png)
 
 
 But since `BuildMeshDrawCommands<>()`([link](https://github.com/EpicGames/UnrealEngine/blob/697a6f07ef518d03ef3611efdafc2e9a89b0fc3c/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.inl#L10)) is the only place that do the shader bindings, how can it handles various different bindings? In fact, it's a template method, the template argument make it possible to handle it, see the snippet below,
@@ -436,10 +448,6 @@ END_GLOBAL_SHADER_PARAMETER_STRUCT()
 ```
 
 That's the boilerplate to declare shader parameters in c++, see macro `BEGIN_SHADER_PARAMETER_STRUCT`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMacros.h#L764)) and `BEGIN_GLOBAL_SHADER_PARAMETER_STRUCT`([link](https://github.com/EpicGames/UnrealEngine/blob/f1d65a58e687e4b9e0f71d7c661d9460c517e8f7/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMacros.h#L782)) for more details.
-
-![](assets/rendering_set_texture_from_resource_table.png)
-
-![](assets/rendering_set_resources_from_table.png)
 
 
 
