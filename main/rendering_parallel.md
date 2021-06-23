@@ -252,3 +252,6 @@ So, what is *Immediate Command List*? `FRHICommandList` wraps `IRHICommandContex
 
 
 Note that, RHI Command list's member method names don't contain *RHI*, e.g., `FRHICommandListImmediate::CreateUniformBuffer()`, `FRHICommandList::DrawIndexedPrimitive()`.
+
+### Summary
+Render commands generate RHI commands. RHI commands may be executed in the rendering thread, or are queued up in the RHI command list and get executed in a dedicated RHI thread. RHI command list uses dyanmic RHI and RHI command context to run the actual GPU driver APIs.
