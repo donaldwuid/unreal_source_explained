@@ -16,6 +16,7 @@ See [Table of Contents](toc.md) for the complete content list. Some important co
 - [Thread Management](thread.md)
 - [Blueprint Visual Scripting](scripting.md)
 - [Rendering](rendering.md)
+    - [Parallel Rendering](rendering_parallel.md)
     - [Rendering Resources](rendering_resource.md)
 - [Gameplay](gameplay.md)
 

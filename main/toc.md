@@ -15,4 +15,5 @@ For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_
 1. [Blueprint Visual Scripting](scripting.md)
 1. [Rendering](rendering.md)
     - [Rendering Resources](rendering_resource.md)
+    - [Parallel Rendering](rendering_parallel.md)
 1. [Gameplay](gameplay.md)
