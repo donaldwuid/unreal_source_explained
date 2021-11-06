@@ -116,9 +116,10 @@ The new MDP is all about caching. Here is its 3 different caching code paths,
 
 Which means, during one frame,
 
-- dyanmic primitive caches nothing,
-- semi-static primitive whose vertex factory depends on the view, can only cahce its `FMeshBatch`,
-- completely static prmitive can cache both `FMeshBatch` and `FMeshDrawCommand`.
+- dyanmic primitive caches nothing.
+- static primitive whose vertex factory depends on the view, can only cahce its `FMeshBatch`, and generating `FMeshDrawCommand` in `InitViews()`
+- completely static prmitive can cache both `FMeshBatch` and `FMeshDrawCommand`, once they are `AddToScene()`ed.
+
 
 ### Primitive Scene Proxy
 
@@ -135,7 +136,8 @@ Which means, during one frame,
 ### Mesh Batch
 
 
-`FMeshBatch` cantains all infomations about **all passes** of one primitive, including the vertex buffer (in vertex factory) and material, etc.
+`FMeshBatch` cantains all infomations about **all passes‘ information** of one primitive, including the vertex buffer (in vertex factory) and material, etc.
+It has an array of `FMeshBatchElement`, which each instance describes **one pass' information**, such as instancing count, uniform buffer, index buffer, and first index into the index buffer.
 
 ```c++
 /**
@@ -180,7 +182,7 @@ During each frame in `InitView()`, `FSceneRenderer` calls `FPrimitiveSceneProxy:
 
 ### Mesh Draw Command
 
-`FMeshDrawCommand`([link](https://github.com/EpicGames/UnrealEngine/blob/017efe88c610f06521a7f48b21e930c73e4f79ea/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L442)) describes a mesh **pass** draw call, captured just above the RHI. It just contains the only data needed to draw.
+`FMeshDrawCommand`([link](https://github.com/EpicGames/UnrealEngine/blob/017efe88c610f06521a7f48b21e930c73e4f79ea/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h#L442)) describes a mesh's **one pass** draw call, captured between Mesh Batch (and Mesh Batch Element for IB, etc.) and the RHI. It just contains the only data needed to draw.
 
 ```c++
 class FMeshDrawCommand
@@ -217,12 +219,10 @@ For dynamic draw commands they are stored in the `FViewInfo`, see the ownership 
 - `TChunkedArray<FMeshDrawCommand> FDynamicMeshDrawCommandStorage::MeshDrawCommands`
 
 And the static and dynamic draw commands are built by these following calls,
-
 ![](assets/mdp_AddMeshBatch_BuildMeshDrawCommands.png)
 
-Dynamic draw commands, since they are view-dependant and stored in `FViewInfo`, they are initiated from `FMobileSceneRenderer::InitViews()` or `FSceneRenderer::ComputeViewVisibility()`, and both of them go to `GenerateDynamicMeshDrawCommands()`.  
+If a static mesh's vertex factory are view-dependant, their mesh draw commands are stored in `FViewInfo`, so they are initiated from `FMobileSceneRenderer::InitViews()` or `FSceneRenderer::ComputeViewVisibility()`, and both of them go to `GenerateDynamicMeshDrawCommands()`.  
 Static draw commands, since they ared stored in the `FScene`, they are initiated from `FScene::AddPrimitive()`, which of cause, right after the primitive is added to the scene.  
 After that, both the dynamic and static draw commands share the same remaining code path from `FMobileBasePassMeshProcessor::AddMeshBatch()` to `FMeshPassProcessor::BuildMeshDrawCommands<..>()`.
 
-
-# Acceleration
+And in `FMeshDrawCommandPassSetupTask::AnyThreadTask()`, it finally handles movable mesh's mesh draw command.

@@ -51,6 +51,28 @@ then, `FRunnableThreadPThread::Run()` calls `FRunnable::Run()`([link](https://gi
 
 RunnableThread and Runnable is the low-level thread management in Unreal. The following Async Task and Task Graph depend on Runnable.
 
+### Thread priority and affinity
+
+Priority determines **how** threads are scheduled amoung each other, you first? or he first.
+Affinity determines **where** threads are running, the performant big core? or the power-efficent little core.
+
+Thread's priority is usually set when they are created, as follow,
+
+![](assets/SetThreadPriority.png)
+
+
+at the bottom, priority is set by `FRunnableThreadPThread::SetThreadPriority()`[(link)](https://github.com/EpicGames/UnrealEngine/blob/4.27/Engine/Source/Runtime/Core/Private/HAL/PThreadRunnableThread.h#L63) and it calls UNIX `pthread_setschedparam()` [(link)](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KernelProgramming/scheduler/scheduler.html). It translate Unreal's `NewPriority` to platform's actual priority integer, then override current schedule parameter's `sched_priority`. And change the policy to `SCHED_RR` which means [*Round Robin*](https://en.wikipedia.org/wiki/Round-robin_scheduling) and each thread executes in equal time-interval and yield to next thread. Next thread is determined by the priority.
+
+![](assets/PThreadRunnableThread_SetThreadPriority.png)
+
+> But is `SCHED_RR` a good default policy for all threads? Maybe we should try `SCHED_OTHER` as default policy, and only set those more-realtime-like threads to be  `SCHED_RR`, such as main thread, render thread (and RHI thread if enabled).
+
+
+Though Unreal implements thread affinity APIs, it doesn't call them by default and use default thread affinity. You can call them manually.
+
+Android can use `FAndroidPlatformProcess::SetThreadAffinityMask()`[(link)](https://github.com/EpicGames/UnrealEngine/blob/4.27/Engine/Source/Runtime/Core/Private/Android/AndroidPlatformProcess.cpp#L80) to pin thread to a specific CPU core, it internally calls `__NR_sched_setaffinity`.
+
+Though in iOS it also provides `FIOSPlatformProcess::SetThreadAffinityMask()`[(link)](https://github.com/EpicGames/UnrealEngine/blob/4.27/Engine/Source/Runtime/Core/Private/IOS/IOSPlatformProcess.cpp#L109), but note that macOS and iOS doens't support explicit thread to processor binding. They can only use [thread_policy_set()](https://developer.apple.com/library/archive/releasenotes/Performance/RN-AffinityAPI/index.html) to separate threads into different *affinity set*, i.e., threads with different should run on diffrent logical processors. Threads with default affinity are freely scheduled by system and tends to run on idle processors.
 ## Queued Thread and Async Task
 Queued Thread and Async Task is Unreal's [*thread pool*](https://en.wikipedia.org/wiki/Thread_pool) implementation. All kinds of tasks are scheduled among a pool of threads.  
 ![](assets/general_thread_pool.png)
