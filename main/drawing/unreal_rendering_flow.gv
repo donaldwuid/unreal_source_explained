@@ -1,0 +1,321 @@
+digraph {
+
+    labelloc="t";
+    fontsize  = 60 // Make title stand out by giving a large font size
+    label="Unreal Rendering Flow";
+
+    rankdir="TD";
+
+    
+    subgraph cluster_01 { 
+        label = "Legend";
+        fontsize  = 30
+
+        subgraph cluster_01 {
+            label="threads";
+
+            Game_Thread[label="Game Thread", shape=box, style="filled"]
+            Render_thread[label="Render thread", shape=box, style="filled", color=lightblue]
+            Task_thread[label="Task thread", shape=box, style="filled", color=orange]
+            {
+                rank = same;
+                edge[style=invis];
+                Game_Thread -> Render_thread -> Task_thread
+                rankdir = LR;
+            }
+        }
+
+        subgraph cluster_02 {
+            label="importance"
+
+            important[label=<Important functions<br/>filled box>, shape=box, style="filled"]
+            trivial[label=<Trivial functions<br/>outlined box>, shape=box]
+            {
+                rank = same;
+                edge[style=invis];
+                important -> trivial
+                rankdir = LR;
+            }
+        }
+
+
+        subgraph cluster_03 {
+            label="invoke"
+            empty1[label="", shape=box]
+            empty2[label="", shape=box]
+            empty1 -> empty2[label="direct call"]
+
+            empty5[label="", shape=box]
+            empty6[label="", shape=box, color=lightblue]
+            empty5 -> empty6[label="indirect call" style=dashed]
+            
+            empty3[label="", shape=box]
+            empty4[label="", shape=box, color=lightblue]
+            empty3 -> empty4[label=<dispatch into other thread> color="black:invis:black" penwidth=1]
+            {
+                rank = same;
+                edge[style=invis];
+                empty1 -> empty5 -> empty3
+                rankdir = LR;
+            }
+        }
+        
+
+
+        {
+            edge[style=invis];
+            node[style=invis]
+            
+            row1 -> row2 -> row3;
+            row1 -> important;
+            row2 -> Game_Thread
+            row3 -> empty1
+        }
+
+    }
+
+    FEngineLoop_Tick[label="FEngineLoop::Tick()", shape=box, style="filled"]
+
+    UWorld_Tick[label="UWorld::Tick()", shape=box]
+
+    UGameEngine_Tick[label="UGameEngine::Tick()", shape=box, style="filled"]
+    UGameEngine_RedrawViewports[label="UGameEngine::RedrawViewports()", shape=box, style="filled"]
+
+    FSlateApplication_Tick[label="FSlateApplication::Tick()", shape=box, style="filled"]
+    FSlateRHIRenderer_DrawWindows[label="FSlateRHIRenderer::DrawWindows()", shape=box, style="filled"]
+
+    FSlateRHIRenderer_DrawWindow_RenderThread[label="FSlateRHIRenderer::DrawWindow_RenderThread()", shape=box, style="filled", color="lightblue"]
+
+    FRHICommandList_EndDrawingViewport[label="FRHICommandList::EndDrawingViewport()", shape=box, style="filled", color="lightblue"]
+
+    FMetalViewport_Present[label="FMetalViewport::Present()", shape=box, style="filled", color="lightblue"]
+
+    FViewport_Draw[label="FViewport::Draw()", shape=box, style="filled"]
+    FSceneViewport_EnqueueBeginRenderFrame[label="FSceneViewport::EnqueueBeginRenderFrame()", shape=box]
+    UGameViewportClient_Draw[label="UGameViewportClient::Draw()", shape=box, style="filled"]
+    FSceneViewport_EnqueueEndRenderFrame[label="FSceneViewport::EnqueueEndRenderFrame()", shape=box]
+
+    UWorld_UpdateLevelStreaming[label="UWorld::UpdateLevelStreaming()", shape=box]
+    FRendererModule_BeginRenderingViewFamily[label="FRendererModule::BeginRenderingViewFamily()", shape=box, style="filled"]
+    ABaseHud_PostRender[label="ABaseHud::PostRender()", shape=box]
+
+    UWorld_SendAllEndOfFrameUpdates[label=<UWorld::SendAllEndOfFrameUpdates<br/><font POINT-SIZE="9">guarantee all render proxies are up to date before kicking off this frame</font>>, shape=box]
+    FSceneRenderer_CreateSceneRenderer[label=<FSceneRenderer::CreateSceneRenderer()<br/><font POINT-SIZE="11">which creates FMobileSceneRenderer of this frame</font>>, shape=box, style="filled"]
+    EnequeueRenderCommand_DrawScene[label=<EnequeueUniqueRenderCommand_DrawScene()>, shape=box, style="filled"]
+    DeleteSceneRenderer[label=<FSceneRenderer::DelayWaitForTasks...DeleteSceneRenderer<br/><font POINT-SIZE="11">which deletes mobile scene render of this frame</font>>, shape=box]
+
+    FMobileSceneRenderer_Render[label=<Running on render thread<br/><font POINT-SIZE="11">RenderViewFamily_RenderThread()<br/></font>FMobileSceneRenderer::Render()>, shape=box, style="filled" color=lightblue xlabel="for all views, render all the mobile techniques"]
+
+    FScene_UpdateAllPrimitiveSceneInfos[label=<FScene::UpdateAllPrimitiveSceneInfos<br/><font POINT-SIZE="11">For each STATIC primitive, cache its Draw Commands</font>>, shape=box, style="filled" color=lightblue]
+
+    FMobileSceneRenderer_InitViews[label=<FMobileSceneRenderer::InitViews()<br/><font POINT-SIZE="11">For each view<br/>find visible primitives<br/>build DYNAMIC draw commands</font>>, shape=box, style="filled" color=lightblue]
+
+
+    
+    FSceneRenderer_ComputeViewVisibility[label=<FSceneRenderer::ComputeViewVisibility()>, shape=box, style="filled" color=lightblue]
+
+    FSceneRenderer_SetupMeshPass[label=<FSceneRenderer::SetupMeshPass()>, shape=box, style="filled" color=lightblue]
+
+
+    FMobileSceneRenderer_SetupMobileBasePassAfterShadowInit[label=<FMobileSceneRenderer::SetupMobileBasePassAfterShadowInit()>, shape=box, style="filled" color=lightblue]
+
+    FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/><font POINT-SIZE="11">PassType=CSMShadowDepth, TranslucencyStandard, TranslucencyAll, ...<br/>generate dynamic commands, sort, and merge dyanmic instancing</font>>, shape=box, style="filled" color=orange]
+
+    FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/><font POINT-SIZE="11">PassType=BasePass<br/>generate dynamic commands, sort, and merge dyanmic instancing</font>>, shape=box, style="filled" color=orange]
+
+    FSceneRenderer_RenderShadowDepthMaps[label=<RenderShadowDepthMaps()>, shape=box, color=lightblue fontsize=9]
+    
+    FMobileSceneRenderer_RenderPrePass[label=<RenderPrePass()>, shape=box, color=lightblue fontsize=9]
+
+    FMobileSceneRenderer_RenderAmbientOcclusion[label=<RenderAmbientOcclusion()>, shape=box, color=lightblue fontsize=9]
+
+    FMobileSceneRenderer_RenderForward[label=<FMobileSceneRenderer::RenderForward()>, shape=box, style="filled" color=lightblue]
+
+    FPostProcessing_ProcessES2[label=<FPostProcessing::ProcessES2()<br/><font POINT-SIZE="11">for each view</font>>, shape=box, color=lightblue fontsize=9]
+
+    FMobileSceneRenderer_RenderMobileBasePass[label=<FMobileSceneRenderer::RenderMobileBasePass()>, shape=box, style="filled" color=lightblue]
+
+    FMobileSceneRenderer_RenderTranslucency[label=<FMobileSceneRenderer::RenderTranslucency()>, shape=box, color=lightblue]
+
+
+    FPrimitiveSceneInfo_AddToScene[label=<FPrimitiveSceneInfo::AddToScene()<br/><font POINT-SIZE="11">AddStaticMeshes(), CacheMeshDrawCommands()</font>>, shape=box, style="filled" color=lightblue]
+
+    FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass[label=<FParallelMeshDrawCommandPass::DispatchPassSetup()>, shape=box, style="filled" color=lightblue]
+    FParallelMeshDrawCommandPass_DispatchPassSetup_OtherPass[label=<FParallelMeshDrawCommandPass::DispatchPassSetup()>, shape=box, style="filled" color=lightblue]
+    FParallelMeshDrawCommandPass_DispatchDraw[label=<FParallelMeshDrawCommandPass::DispatchDraw()<br/><font POINT-SIZE="11">SubmitMeshDrawCommandsRange(), draw a subset of built commands</font>>, shape=box, style="filled" color=lightblue]
+
+
+
+    FMobileBasePassMeshProcessor_AddMeshBatch[label=<FMobileBasePassMeshProcessor::AddMeshBatch()>, shape=box, style="filled" color=lightblue]
+    FMobileBasePassMeshProcessor_Process[label=<FMobileBasePassMeshProcessor::Process()>, shape=box, style="filled" color=lightblue]
+    FMeshPassProcessor_BuildMeshDrawCommands[label=<FMeshPassProcessor::BuildMeshDrawCommands()>, shape=box, style="filled" color=lightblue]
+    FMeshMaterialShader_GetElementShaderBindings[label=<FMeshMaterialShader::GetElementShaderBindings()>, shape=box, color=lightblue]
+    FMeshDrawCommand_SetShaders[label=<FMeshDrawCommand::SetShaders()>, shape=box, color=lightblue]
+
+    FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread[label=<FMobileBasePassMeshProcessor::AddMeshBatch()>, shape=box, style="filled" color=orange]
+    FMobileBasePassMeshProcessor_Process_TaskThread[label=<FMobileBasePassMeshProcessor::Process()>, shape=box, style="filled" color=orange]
+    FMeshPassProcessor_BuildMeshDrawCommands_TaskThread[label=<FMeshPassProcessor::BuildMeshDrawCommands()>, shape=box, style="filled" color=orange]
+    FMeshMaterialShader_GetElementShaderBindings_TaskThread[label=<FMeshMaterialShader::GetElementShaderBindings()>, shape=box, color=orange]
+    FMeshDrawCommand_SetShaders_TaskThread[label=<FMeshDrawCommand::SetShaders()>, shape=box, color=orange]
+
+
+    FMeshDrawCommand_SubmitDraw[label=<FMeshDrawCommand::SubmitDraw()>, shape=box, color=lightblue, style="filled"]
+
+    FRHICommandList_SetGraphicsPipelineState[label=<FRHICommandList::SetGraphicsPipelineState()>, shape=box, color=lightblue]
+    FRHICommandList_SetStreamSource[label=<FRHICommandList::SetStreamSource()>, shape=box, color=lightblue]
+    FRHICommandList_DrawIndexedPrimitive[label=<FRHICommandList::DrawIndexedPrimitive()>, shape=box, color=lightblue]
+
+
+    FMetalStateCache_CommitResourceTable[label=<FMetalStateCache::CommitResourceTable()>, shape=box, color=lightblue]
+
+    FMetalCommandEncoder_SetShaderBuffer[label=<FMetalCommandEncoder::SetShaderBuffer()>, shape=box, color=lightblue]
+    FMetalCommandEncoder_SetShaderTexture[label=<FMetalCommandEncoder::SetShaderTexture()>, shape=box, color=lightblue]
+
+
+
+
+    {
+        FEngineLoop_Tick -> UGameEngine_Tick
+        FEngineLoop_Tick -> FSlateApplication_Tick
+        FSlateApplication_Tick -> FSlateRHIRenderer_DrawWindows[style=dashed]
+        FSlateRHIRenderer_DrawWindows -> FSlateRHIRenderer_DrawWindow_RenderThread[label="Game thread dispatches to Render thread" color="black:invis:black" penwidth=1]
+        FSlateRHIRenderer_DrawWindow_RenderThread -> FRHICommandList_EndDrawingViewport
+        FRHICommandList_EndDrawingViewport -> FMetalViewport_Present
+
+        UGameEngine_Tick -> UWorld_Tick
+        UGameEngine_Tick -> UGameEngine_RedrawViewports
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            UWorld_Tick -> UGameEngine_RedrawViewports
+            rankdir = LR;
+        }
+
+        UGameEngine_RedrawViewports -> FViewport_Draw
+
+        FViewport_Draw -> FSceneViewport_EnqueueBeginRenderFrame
+        FViewport_Draw -> UGameViewportClient_Draw
+        FViewport_Draw -> FSceneViewport_EnqueueEndRenderFrame
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FSceneViewport_EnqueueBeginRenderFrame -> UGameViewportClient_Draw -> FSceneViewport_EnqueueEndRenderFrame
+            rankdir = LR;
+        }
+
+        UGameViewportClient_Draw -> UWorld_UpdateLevelStreaming
+        UGameViewportClient_Draw -> FRendererModule_BeginRenderingViewFamily
+        UGameViewportClient_Draw -> ABaseHud_PostRender
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            UWorld_UpdateLevelStreaming -> FRendererModule_BeginRenderingViewFamily -> ABaseHud_PostRender
+        }
+
+        FRendererModule_BeginRenderingViewFamily -> FSceneRenderer_CreateSceneRenderer
+        FRendererModule_BeginRenderingViewFamily -> UWorld_SendAllEndOfFrameUpdates
+        FRendererModule_BeginRenderingViewFamily -> EnequeueRenderCommand_DrawScene
+        FRendererModule_BeginRenderingViewFamily -> DeleteSceneRenderer
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FSceneRenderer_CreateSceneRenderer -> UWorld_SendAllEndOfFrameUpdates -> EnequeueRenderCommand_DrawScene -> DeleteSceneRenderer
+            rankdir = LR;
+        }
+
+        EnequeueRenderCommand_DrawScene -> FMobileSceneRenderer_Render [label="Game thread dispatches to Render thread" color="black:invis:black" penwidth=1]
+
+        EnequeueRenderCommand_DrawScene -> FSlateRHIRenderer_DrawWindow_RenderThread[style=invis]
+
+        FMobileSceneRenderer_Render -> FScene_UpdateAllPrimitiveSceneInfos
+        FMobileSceneRenderer_Render -> FMobileSceneRenderer_InitViews
+        FMobileSceneRenderer_Render -> FSceneRenderer_RenderShadowDepthMaps
+        FMobileSceneRenderer_Render -> FMobileSceneRenderer_RenderPrePass
+        FMobileSceneRenderer_Render -> FMobileSceneRenderer_RenderAmbientOcclusion
+        FMobileSceneRenderer_Render -> FMobileSceneRenderer_RenderForward
+        FMobileSceneRenderer_Render -> FPostProcessing_ProcessES2
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FScene_UpdateAllPrimitiveSceneInfos -> FMobileSceneRenderer_InitViews -> FSceneRenderer_RenderShadowDepthMaps -> FMobileSceneRenderer_RenderPrePass -> FMobileSceneRenderer_RenderAmbientOcclusion -> FMobileSceneRenderer_RenderForward -> FPostProcessing_ProcessES2
+            rankdir = LR;
+        }
+
+        FScene_UpdateAllPrimitiveSceneInfos -> FPrimitiveSceneInfo_AddToScene
+
+        FPrimitiveSceneInfo_AddToScene -> FMobileBasePassMeshProcessor_AddMeshBatch
+
+        FMobileBasePassMeshProcessor_AddMeshBatch -> FMobileBasePassMeshProcessor_Process -> FMeshPassProcessor_BuildMeshDrawCommands
+
+        FMeshPassProcessor_BuildMeshDrawCommands -> FMeshMaterialShader_GetElementShaderBindings
+        FMeshPassProcessor_BuildMeshDrawCommands -> FMeshDrawCommand_SetShaders
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FMeshMaterialShader_GetElementShaderBindings -> FMeshDrawCommand_SetShaders
+            rankdir = LR;
+        }
+
+        FMobileSceneRenderer_InitViews -> FSceneRenderer_ComputeViewVisibility
+        FMobileSceneRenderer_InitViews -> FMobileSceneRenderer_SetupMobileBasePassAfterShadowInit
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FSceneRenderer_ComputeViewVisibility -> FMobileSceneRenderer_SetupMobileBasePassAfterShadowInit
+            rankdir = LR;
+        }
+
+        FSceneRenderer_ComputeViewVisibility -> FSceneRenderer_SetupMeshPass [label=<For each view>]
+        FSceneRenderer_SetupMeshPass -> FParallelMeshDrawCommandPass_DispatchPassSetup_OtherPass
+        FParallelMeshDrawCommandPass_DispatchPassSetup_OtherPass -> FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass [label=<For each render pass, except base pass,<br/>Render thread dispatches to Task thread> color="black:invis:black:invis:black:invis:black" penwidth=1]
+        FMobileSceneRenderer_SetupMobileBasePassAfterShadowInit -> FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass [label=<For each view>]
+        FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass -> FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass [label=<For base pass<br/>Render thread dispatches to Task thread> color="black:invis:black" penwidth=1]
+
+        FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass -> FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread
+        FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass -> FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread
+
+        FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread -> FMobileBasePassMeshProcessor_Process_TaskThread -> FMeshPassProcessor_BuildMeshDrawCommands_TaskThread
+
+        FMeshPassProcessor_BuildMeshDrawCommands_TaskThread -> FMeshMaterialShader_GetElementShaderBindings_TaskThread
+        FMeshPassProcessor_BuildMeshDrawCommands_TaskThread -> FMeshDrawCommand_SetShaders_TaskThread
+
+
+        FMobileSceneRenderer_RenderForward -> FMobileSceneRenderer_RenderMobileBasePass
+        FMobileSceneRenderer_RenderForward -> FMobileSceneRenderer_RenderTranslucency
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FMobileSceneRenderer_RenderMobileBasePass -> FMobileSceneRenderer_RenderTranslucency
+            rankdir = LR;
+        }
+
+        FMobileSceneRenderer_RenderMobileBasePass -> FParallelMeshDrawCommandPass_DispatchDraw
+
+        FParallelMeshDrawCommandPass_DispatchDraw -> FMeshDrawCommand_SubmitDraw
+
+        FMeshDrawCommand_SubmitDraw -> FRHICommandList_SetGraphicsPipelineState
+        FMeshDrawCommand_SubmitDraw -> FRHICommandList_SetStreamSource
+        FMeshDrawCommand_SubmitDraw -> FRHICommandList_DrawIndexedPrimitive
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FRHICommandList_SetGraphicsPipelineState -> FRHICommandList_SetStreamSource -> FRHICommandList_DrawIndexedPrimitive
+            rankdir = LR;
+        }
+
+        FRHICommandList_DrawIndexedPrimitive -> FMetalStateCache_CommitResourceTable [style=dashed]
+        FMetalStateCache_CommitResourceTable -> FMetalCommandEncoder_SetShaderBuffer
+        FMetalStateCache_CommitResourceTable -> FMetalCommandEncoder_SetShaderTexture
+    }
+
+    
+}
