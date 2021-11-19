@@ -285,6 +285,13 @@ digraph {
 
         FMeshPassProcessor_BuildMeshDrawCommands_TaskThread -> FMeshMaterialShader_GetElementShaderBindings_TaskThread
         FMeshPassProcessor_BuildMeshDrawCommands_TaskThread -> FMeshDrawCommand_SetShaders_TaskThread
+        
+        {
+            rank = same;
+            edge[style=invis];
+            FMobileBasePassMeshProcessor_AddMeshBatch -> FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread
+            rankdir = LR;
+        }
 
 
         FMobileSceneRenderer_RenderForward -> FMobileSceneRenderer_RenderMobileBasePass
