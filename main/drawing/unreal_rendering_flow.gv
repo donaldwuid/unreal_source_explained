@@ -104,7 +104,7 @@ digraph {
     EnequeueRenderCommand_DrawScene[label=<EnequeueUniqueRenderCommand_DrawScene()>, shape=box, style="filled"]
     DeleteSceneRenderer[label=<FSceneRenderer::DelayWaitForTasks...DeleteSceneRenderer<br/><font POINT-SIZE="11">which deletes mobile scene render of this frame</font>>, shape=box]
 
-    FMobileSceneRenderer_Render[label=<Running on render thread<br/><font POINT-SIZE="11">RenderViewFamily_RenderThread()<br/></font>FMobileSceneRenderer::Render()>, shape=box, style="filled" color=lightblue xlabel="for all views, render all the mobile techniques"]
+    FMobileSceneRenderer_Render[label=<<font POINT-SIZE="11">RenderViewFamily_RenderThread()<br/></font>FMobileSceneRenderer::Render()<br/><b><font color="red">for all views, render all the mobile techniques</font></b>>, shape=box, style="filled" color=lightblue]
 
     FScene_UpdateAllPrimitiveSceneInfos[label=<FScene::UpdateAllPrimitiveSceneInfos<br/><font POINT-SIZE="11">For each STATIC primitive, cache its Draw Commands</font>>, shape=box, style="filled" color=lightblue]
 
@@ -119,9 +119,9 @@ digraph {
 
     FMobileSceneRenderer_SetupMobileBasePassAfterShadowInit[label=<FMobileSceneRenderer::SetupMobileBasePassAfterShadowInit()>, shape=box, style="filled" color=lightblue]
 
-    FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/><font POINT-SIZE="11">PassType=CSMShadowDepth, TranslucencyStandard, TranslucencyAll, ...<br/>generate dynamic commands, sort, and merge dyanmic instancing</font>>, shape=box, style="filled" color=orange]
+    FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/>for PassType=CSMShadowDepth, TranslucencyStandard, TranslucencyAll, ...<br/><b><font color="red">generate dynamic commands, sort-and-merge FULL draw commands</font></b>>, shape=box, style="filled" color=orange]
 
-    FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/><font POINT-SIZE="11">PassType=BasePass<br/>generate dynamic commands, sort, and merge dyanmic instancing</font>>, shape=box, style="filled" color=orange]
+    FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/>for PassType=BasePass<br/><b><font color="red">generate dynamic commands, sort-and-merge FULL draw commands</font></b>>, shape=box, style="filled" color=orange]
 
     FSceneRenderer_RenderShadowDepthMaps[label=<RenderShadowDepthMaps()>, shape=box, color=lightblue fontsize=9]
     
@@ -142,7 +142,7 @@ digraph {
 
     FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass[label=<FParallelMeshDrawCommandPass::DispatchPassSetup()>, shape=box, style="filled" color=lightblue]
     FParallelMeshDrawCommandPass_DispatchPassSetup_OtherPass[label=<FParallelMeshDrawCommandPass::DispatchPassSetup()>, shape=box, style="filled" color=lightblue]
-    FParallelMeshDrawCommandPass_DispatchDraw[label=<FParallelMeshDrawCommandPass::DispatchDraw()<br/><font POINT-SIZE="11">SubmitMeshDrawCommandsRange(), draw a subset of built commands</font>>, shape=box, style="filled" color=lightblue]
+    FParallelMeshDrawCommandPass_DispatchDraw[label=<FParallelMeshDrawCommandPass::DispatchDraw()<br/>SubmitMeshDrawCommandsRange()<br/><b><font color="red">submits a SUBSET of previously sorted-and-merged FULL mesh draw commands</font></b>>, shape=box, style="filled" color=lightblue]
 
 
 
@@ -277,6 +277,14 @@ digraph {
         FParallelMeshDrawCommandPass_DispatchPassSetup_OtherPass -> FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass [label=<For each render pass, except base pass,<br/>Render thread dispatches to Task thread> color="black:invis:black:invis:black:invis:black" penwidth=1]
         FMobileSceneRenderer_SetupMobileBasePassAfterShadowInit -> FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass [label=<For each view>]
         FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass -> FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass [label=<For base pass<br/>Render thread dispatches to Task thread> color="black:invis:black" penwidth=1]
+        {
+            rank = same;
+            // Here you enforce the desired order with "invisible" edges and arrowheads
+            edge[style=invis];
+            FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass -> FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass
+            rankdir = LR;
+        }
+
 
         FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass -> FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread
         FMeshDrawCommandPassSetupTask_AnyThreadTask_OtherPass -> FMobileBasePassMeshProcessor_AddMeshBatch_TaskThread
