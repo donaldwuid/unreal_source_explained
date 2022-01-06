@@ -145,9 +145,28 @@ Which in summary is,
 
 ### Mesh Batch
 
+1 `UStaticMesh` has several LODs (`FStaticMeshLODResources`, `InStaticMesh->RenderData->LODResources[InLODIndex]`).
 
-`FMeshBatch` cantains all infomations about **all passes‘ information** of one primitive, including the vertex buffer (in vertex factory) and material, etc.
-It has an array of `FMeshBatchElement`, which each instance describes **one pass' information**, such as instancing count, uniform buffer, index buffer, and first index into the index buffer.
+1 LOD has several *Draw Section*s (`FStaticMeshSection`, `InStaticMesh->RenderData->LODResources[InLODIndex].Sections[InSectionIndex]`).
+1 Draw Section usually generates 1 drawcall, which specify drawing which triangles with which material index.
+```c++
+struct FStaticMeshSection {
+	/** The index of the material with which to render this section. */
+	int32 MaterialIndex;
+
+	/** Range of vertices and indices used when rendering this section. */
+	uint32 FirstIndex;
+	uint32 NumTriangles;
+	uint32 MinVertexIndex;
+	uint32 MaxVertexIndex;
+	...
+}
+```
+
+In `FStaticMeshSceneProxy::GetMeshElement()`, 1 Draw Section's actual rendering data is extracted into 1 corresponding 1 *Mesh Batch* (`FMeshBatch`) and mesh batch's 1 *Mesh Batch Element* (`FMeshBatchElement`).
+
+1  `FMeshBatch` cantains all infomations about **all passes‘ information** of one primitive, including the vertex buffer (in vertex factory) and material, etc.
+It has an array of `FMeshBatchElement`, **whose length is usually 1**. Each element describes **one pass' information**, such as instancing count, uniform buffer, index buffer, and first index into the index buffer.
 
 ```c++
 /**
