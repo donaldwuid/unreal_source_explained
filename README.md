@@ -8,7 +8,7 @@ USE is just several markdown files, see [main.md/overview](main/main.md).
 
 USE's goals are:
 - look inside the Unreal engine source;
-- cover all submodules (loop, memory, render, animation, physics, ...)
+- insight convering all submodules (loop, memory, render, animation, physics, ...)
 - overview then detailed;
 - quantitative analysis;
 - accurate explanation;
@@ -16,7 +16,7 @@ USE's goals are:
 - in English;
 
 USE is based on:
-- Unreal 4.23~4.25 source code;
+- Unreal 4.23~4.27 source code;
 - XCode 11 and its Instrument, in order to capture more details, such as graphic memory allocations;
 - the [*ActionRPG*](https://www.unrealengine.com/marketplace/en-US/slug/action-rpg) demo, this is a mobile demo that can run on mobile devices, it's public that everyone can access, and it's not-too-simple with enough engine feature applied, such as blueprints, game ability system, etc.;
 - running on iOS devices with:
