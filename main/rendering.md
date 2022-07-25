@@ -53,13 +53,13 @@ Following is some important rendering-related classes, you can summarize it by t
 - `U**` are all in game thread,
 	- all of their codes are in Engine module,
 - `F**` are all in rendering thread,
-	- `F**Proxy` and `FMaterial`'s codes are all in Engine module, they are literaly the **one-way bridge** from GameThread to RenderingThread
+	- however, `F**Proxy`, `FMaterial` and `FSceneView`'s codes are all in Engine module, they are literaly the **one-way data bridge** from GameThread to RenderingThread
 	- others' codes are in Renderer or RenderCore module.
 
 
 | Game Thread | Rendering Thread| Rendering Thread|
 |--|--|--|
-| **Engine Module** | **Engine Module** | **Rendering Module** |
+| **Engine Module** | **Engine Module** | **Renderer Module** |
 ||
 |**World (Scene):**|
 |`UWorld`||`FScene`|
@@ -67,23 +67,23 @@ Following is some important rendering-related classes, you can summarize it by t
 |`USceneComponent`||
 ||
 |**Primitive:**
-|`UPrimitiveComponent`|`FPrimitiveSceneProxy`||
-|||`FPrimitiveSceneInfo`|
+|`UPrimitiveComponent`|`FPrimitiveSceneProxy`|`FPrimitiveSceneInfo`|
 ||`F**SceneProxy`,<br>inehrited from `FPrimitiveSceneProxy`,<br> has `FVertexyFactory` and `UMaterialInterface`
 ||
 |**View:**
-|||`FSceneView`
+||`FSceneViewFamily`<br>- has multiple `FSceneView`<br>- transient and create every frame|`FViewInfo`<br>inherited from `FSceneView`
 |`ULocalPlayer`||`FSceneViewState`|
-|||`FSceneRenderer`,<br>derived class: `FMobileSceneRenderer`|
 ||
 |**Light:** 
-|`ULightComponent`|`FLightSceneProxy`|
-|||`FLightSceneInfo`|
+|`ULightComponent`|`FLightSceneProxy`|`FLightSceneInfo`|
 ||
 |**Material and Shader:** 
 |`UMaterialInterface`,<br>derived class: `UMaterial` and `UMaterialInstance` |`FMaterial`,<br>derived class: `FMaterialResource` and `FMaterialRenderProxy`|
 |||`FShaderType`,<br>derived class: `FMaterialShaderType`|
 |||`FShader`,<br>derived class: `FMaterialShader`|
+||
+|**Renderer:**
+|||`FSceneRenderer`,<br>- transient and create every frame<br>- derived class: `FMobileSceneRenderer`|
 
 Unreal uses [mtlpp](https://github.com/naleksiev/mtlpp), a C++ Metal wrapper, to glue its RHI codes and Metal APIs together.
 
