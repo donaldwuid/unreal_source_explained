@@ -1,24 +1,8 @@
 
-
 # [WIP] Unreal Source Explained
 
 Unreal Source Explained (USE) is an Unreal source code analysis, based on profilers.  
-For more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_explained) in github.
-
-## Contents
-
-See [Table of Contents](toc.md) for the complete content list. Some important contents are listed below, 
-
-- [Overview](main.md)
-- [Initialization](initialization.md)
-- [Loop](loop.md)
-- [Memory Management](memory.md)
-- [Thread Management](thread.md)
-- [Blueprint Visual Scripting](scripting.md)
-- [Rendering](rendering.md)
-    - [Parallel Rendering](rendering_parallel.md)
-    - [Rendering Resources](rendering_resource.md)
-- [Gameplay](gameplay.md)
+For full Table of Contents and more infomation, see the [repo](https://github.com/donaldwuid/unreal_source_explained) in github.
 
 
 
@@ -69,8 +53,9 @@ Following is some important rendering-related classes, you can summarize it by t
 - `U**` are all in game thread,
 	- all of their codes are in Engine module,
 - `F**` are all in rendering thread,
-	- `F**Proxy` and `FMaterial`'s codes are all in Engine module,
+	- `F**Proxy` and `FMaterial`'s codes are all in Engine module, they are literaly the **one-way bridge** from GameThread to RenderingThread
 	- others' codes are in Renderer or RenderCore module.
+
 
 | Game Thread | Rendering Thread| Rendering Thread|
 |--|--|--|
