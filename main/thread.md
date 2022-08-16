@@ -165,6 +165,13 @@ Task Graph is a parallel programming with coarse granularity, and it handles dep
 
 We can divide the whole game into several big tasks, tasks in parallel can shared read some data but never shared write, tasks with dependency must finish in order. 
 
+
+You can create your own task as the demo code in `TGraphTask`'s comment([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h#L698)). Keep in mind that the task argument can not be references, but pointer is OK.  
+The following image is the call stacks filtered by "TGraphTask", you may notice the both the render thread and the game thread use the task graph to accomplish many important tasks, even include the world ticking.
+![](assets/unreal_task_graph.png)
+
+
+
 `FTaskGraphImplementation`([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Private/Async/TaskGraph.cpp#L1124)) is the most important manager of Task Graph, it manages an array of `FWorkerThread`s,
 ```c++
 /**
@@ -238,7 +245,18 @@ Named task thread are created in various places. But the unnamed task threads ar
 
 ![](assets/FTaskGraphImplementation_ctor.png)
 
+Named thread cannot handle infinite recusive tasks depth, they can only handle 2 layers of tasks: they have 2 queues to executes tasks.
+![](assets/namethread_2_queues.png)
 
-You can create your own task as the demo code in `TGraphTask`'s comment([link](https://github.com/EpicGames/UnrealEngine/blob/bf95c2cbc703123e08ab54e3ceccdd47e48d224a/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h#L698)). Keep in mind that the task argument can not be references, but pointer is OK.  
-The following image is the call stacks filtered by "TGraphTask", you may notice the both the render thread and the game thread use the task graph to accomplish many important tasks, even include the world ticking.
-![](assets/unreal_task_graph.png)
+The first one is Main Queue (QueueIndex=0), and the second one is Local Queue (QueueIndex=1). Main Queue's tasks are automatically pull out and execute until the queue is empty.
+
+![](assets/game_thread_process_until_idle.png)
+
+Local Queue handles intenral tasks and they won't be automatically executed, they must be manually trigged by calling `ProcessThreadUntilIdle()` or by `WaitUntilTasksComplete()` (which internally call `ProcessThreadUntilIdle()`)
+
+ See [Parallel Rendering](main/rendering_parallel.md) for rendering thread Main Queue / Local Queue analysis.
+
+
+Any thread has only 1 task queue and it can handle recursive tasks simply by events dependencies.
+
+![](assets/anythread_1_queue.png)

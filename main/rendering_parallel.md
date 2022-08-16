@@ -70,8 +70,6 @@ Below is the time profiler filtered by `void EnqueueUniqueRenderCommand()` and o
 
 ![](assets/EnqueueUniqueRenderCommand.png)
 
-The task is of type `TEnqueueUniqueRenderCommandType`, which inherits from `FRenderCommand`, they are task with `ESubsequentsMode::FireAndForget`, hence they don't use task dependencies. And they needs to run in rendering thread.
-
 Recall from the [Thread Management](thread.md)'s Task Grpah chapter that, TaskGrpah is a multi-threaded task graph framework. With `TGraphTask<EURCType>::CreateTask().ConstructAndDispatchWhenReady()` called, it create `TGraphTask` instance who holds an instance of `FRenderCommand`, and dispatch this `TGraphTask` instance into the queue. Then in rendering thread, the task is dequeued and its `DoTask()` is called, hence, the user's lambda is executed.
 
 ```c++
@@ -91,6 +89,13 @@ private:
 	LAMBDA Lambda;
 };
 ```
+
+Each named thread has 2 queues for executing tasks. Take the rendering thread for example, the main queue (QueueIndex = 0) are those render task from game thread, these **main** tasks are of type `TEnqueueUniqueRenderCommandType`, which inherit from `FRenderCommand`. Because **main** render tasks are root tasks created from game thread to render thread, they are running in rendering thread (because their `GetDesiredThread()` return `RenderThread`). For better performance, they don't use task dependencies (their `GetSubsequentsMode()` returns `ESubsequentsMode::FireAndForget`). The local queue (QueueIndex = 1) handles rendering thread's internal sub-tasks, they are driven by task graph's prequisition dependencies (they are processed each time a `FTaskGraphInterface::Get().WaitUntilTaskCompletes()` is called, see image below). 
+
+
+
+![](assets/renderthread_2_queues.png)
+
 
 Below is time profiler showing some call tree filtered by `TGraphTask<TEnqueueUniqueRenderCommandType` with great overhead (again, which indicating their importance). We can know they are all executing in the rendering thread, such as `FRenderModule::BeginRenderingViewFamily()`, `FEngineLoop::Tick()::EndFrameName`.
 ![](assets/TEnqueueUniqueRenderCommandType_DoTask.png)
