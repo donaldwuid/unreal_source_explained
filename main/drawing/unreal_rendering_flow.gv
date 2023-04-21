@@ -314,6 +314,10 @@ digraph {
 
         FMobileSceneRenderer_RenderMobileBasePass -> FParallelMeshDrawCommandPass_DispatchDraw
 
+        FSceneRenderer_RenderShadowDepthMaps -> FParallelMeshDrawCommandPass_DispatchDraw [style=dashed]
+        FMobileSceneRenderer_RenderPrePass -> FParallelMeshDrawCommandPass_DispatchDraw
+        FMobileSceneRenderer_RenderAmbientOcclusion -> FParallelMeshDrawCommandPass_DispatchDraw
+
         FParallelMeshDrawCommandPass_DispatchDraw -> FMeshDrawCommand_SubmitDraw
 
         FMeshDrawCommand_SubmitDraw -> FRHICommandList_SetGraphicsPipelineState
