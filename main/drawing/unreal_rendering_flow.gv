@@ -123,7 +123,7 @@ digraph {
 
     FMeshDrawCommandPassSetupTask_AnyThreadTask_BasePass[label=<FMeshDrawCommandPassSetupTask::AnyThreadTask()<br/>for PassType=BasePass<br/><b><font color="red">generate dynamic commands, sort-and-merge FULL draw commands</font></b>>, shape=box, style="filled" color=orange]
 
-    FSceneRenderer_RenderShadowDepthMaps[label=<RenderShadowDepthMaps()>, shape=box, color=lightblue fontsize=9]
+    FSceneRenderer_RenderShadowDepthMaps[label=<RenderShadowDepthMaps()>, shape=box, style="filled", color=lightblue fontsize=9]
     
     FMobileSceneRenderer_RenderPrePass[label=<RenderPrePass()>, shape=box, color=lightblue fontsize=9]
 
@@ -142,8 +142,12 @@ digraph {
 
     FParallelMeshDrawCommandPass_DispatchPassSetup_BasePass[label=<FParallelMeshDrawCommandPass::DispatchPassSetup()>, shape=box, style="filled" color=lightblue]
     FParallelMeshDrawCommandPass_DispatchPassSetup_OtherPass[label=<FParallelMeshDrawCommandPass::DispatchPassSetup()>, shape=box, style="filled" color=lightblue]
-    FParallelMeshDrawCommandPass_DispatchDraw[label=<FParallelMeshDrawCommandPass::DispatchDraw()<br/>SubmitMeshDrawCommandsRange()<br/><b><font color="red">submits a SUBSET of previously sorted-and-merged FULL mesh draw commands</font></b>>, shape=box, style="filled" color=lightblue]
+    FParallelMeshDrawCommandPass_DispatchDraw[label=<FParallelMeshDrawCommandPass::DispatchDraw()> shape=box, style="filled" color=lightblue]
+    FParallelMeshDrawCommandPass_DispatchDraw_RenderThread_WillTaskThread[label=<FParallelMeshDrawCommandPass::DispatchDraw()> shape=box, style="filled" color=lightblue]
+    SubmitMeshDrawCommandsRange_RenderThread[label=<SubmitMeshDrawCommandsRange<br/><b><font color="red">submits a SUBSET of previously sorted-and-merged FULL mesh draw commands</font></b>>, shape=box, style="filled" color=lightblue]
+    SubmitMeshDrawCommandsRange_TaskThread[label=<SubmitMeshDrawCommandsRange<br/><b><font color="red">submits a SUBSET of previously sorted-and-merged FULL mesh draw commands</font></b>>, shape=box, style="filled" color=orange]
 
+    FDrawVisibleMeshCommandsAnyThreadTask[label=<FDrawVisibleMeshCommandsAnyThreadTask::DoTask()>, shape=box, style="filled" color=orange]
 
 
     FMobileBasePassMeshProcessor_AddMeshBatch[label=<FMobileBasePassMeshProcessor::AddMeshBatch()>, shape=box, style="filled" color=lightblue]
@@ -159,7 +163,9 @@ digraph {
     FMeshDrawCommand_SetShaders_TaskThread[label=<FMeshDrawCommand::SetShaders()>, shape=box, color=orange]
 
 
-    FMeshDrawCommand_SubmitDraw[label=<FMeshDrawCommand::SubmitDraw()>, shape=box, color=lightblue, style="filled"]
+    FMeshDrawCommand_SubmitDraw_RenderThread[label=<FMeshDrawCommand::SubmitDraw()>, shape=box, color=lightblue, style="filled"]
+    FMeshDrawCommand_SubmitDraw_TaskThread[label=<FMeshDrawCommand::SubmitDraw()>, shape=box, color=orange, style="filled"]
+    FMeshDrawCommand_SubmitDraw_TaskThread_Subsequent[label=<FMeshDrawCommand::SubmitDraw()<br/>subsequent calls>, shape=box, color=orange, style="invis"]
 
     FRHICommandList_SetGraphicsPipelineState[label=<FRHICommandList::SetGraphicsPipelineState()>, shape=box, color=lightblue]
     FRHICommandList_SetStreamSource[label=<FRHICommandList::SetStreamSource()>, shape=box, color=lightblue]
@@ -314,15 +320,33 @@ digraph {
 
         FMobileSceneRenderer_RenderMobileBasePass -> FParallelMeshDrawCommandPass_DispatchDraw
 
-        FSceneRenderer_RenderShadowDepthMaps -> FParallelMeshDrawCommandPass_DispatchDraw [style=dashed]
+        FSceneRenderer_RenderShadowDepthMaps -> FParallelMeshDrawCommandPass_DispatchDraw_RenderThread_WillTaskThread [style=dashed]
         FMobileSceneRenderer_RenderPrePass -> FParallelMeshDrawCommandPass_DispatchDraw
         FMobileSceneRenderer_RenderAmbientOcclusion -> FParallelMeshDrawCommandPass_DispatchDraw
+        {
+            rank = same;
+            edge[style=invis];
+            FParallelMeshDrawCommandPass_DispatchDraw_RenderThread_WillTaskThread -> FParallelMeshDrawCommandPass_DispatchDraw
+            rankdir = LR;
+        }
 
-        FParallelMeshDrawCommandPass_DispatchDraw -> FMeshDrawCommand_SubmitDraw
+        FParallelMeshDrawCommandPass_DispatchDraw -> SubmitMeshDrawCommandsRange_RenderThread
+        FParallelMeshDrawCommandPass_DispatchDraw_RenderThread_WillTaskThread -> FDrawVisibleMeshCommandsAnyThreadTask [label="Render thread dispatches to Task thread" color="black:invis:black" penwidth=1]
+        FDrawVisibleMeshCommandsAnyThreadTask -> SubmitMeshDrawCommandsRange_TaskThread
+        {
+            rank = same;
+            edge[style=invis];
+            SubmitMeshDrawCommandsRange_TaskThread -> SubmitMeshDrawCommandsRange_RenderThread
+            rankdir = LR;
+        }
 
-        FMeshDrawCommand_SubmitDraw -> FRHICommandList_SetGraphicsPipelineState
-        FMeshDrawCommand_SubmitDraw -> FRHICommandList_SetStreamSource
-        FMeshDrawCommand_SubmitDraw -> FRHICommandList_DrawIndexedPrimitive
+        SubmitMeshDrawCommandsRange_RenderThread -> FMeshDrawCommand_SubmitDraw_RenderThread
+        SubmitMeshDrawCommandsRange_TaskThread -> FMeshDrawCommand_SubmitDraw_TaskThread
+        FMeshDrawCommand_SubmitDraw_TaskThread -> FMeshDrawCommand_SubmitDraw_TaskThread_Subsequent [style=dashed]
+
+        FMeshDrawCommand_SubmitDraw_RenderThread -> FRHICommandList_SetGraphicsPipelineState
+        FMeshDrawCommand_SubmitDraw_RenderThread -> FRHICommandList_SetStreamSource
+        FMeshDrawCommand_SubmitDraw_RenderThread -> FRHICommandList_DrawIndexedPrimitive
         {
             rank = same;
             // Here you enforce the desired order with "invisible" edges and arrowheads
